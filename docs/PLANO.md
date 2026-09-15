@@ -294,6 +294,7 @@ create table admin_users (
 22. Autenticação de admin (Supabase Auth, verificação contra `admin_users`)
 23. Páginas CRUD: `/admin/escolas`, `/admin/turmas`, `/admin/atividades`, `/admin/alunos`, `/admin/encarregados`
 24. Página `/admin/documentos` — upload + formulário de etiquetagem de âmbito + estado de processamento
+    - Inclui edição do texto extraído (`raw_text`) com re-chunking e re-embedding — a extração automática (PDF/tabelas) nunca é 100% fiável, e não há forma de corrigir isso hoje (Fase 2/3) sem apagar e reingerir o documento inteiro.
 25. Página `/admin/lembretes` — lista simples de lembretes agendados
 
 ### Fase 6 — Chat web para encarregados
