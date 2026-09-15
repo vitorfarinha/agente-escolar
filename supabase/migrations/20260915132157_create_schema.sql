@@ -102,11 +102,16 @@ create table documents (
 );
 
 -- Um documento pode ter vários âmbitos (ex: geral + turma específica)
+--
+-- Nota: scope_id usa chave substituta (id) + unique em vez de chave primária
+-- composta, porque colunas de primary key são implicitamente NOT NULL no
+-- Postgres — e scope_id precisa de poder ser null quando scope_type='geral'.
 create table document_scopes (
+  id uuid primary key default gen_random_uuid(),
   document_id uuid references documents(id) not null,
   scope_type text not null check (scope_type in ('geral','ciclo','ano','turma','atividade','aluno')),
   scope_id uuid, -- id do ciclo/ano/turma/atividade/aluno; null se scope_type='geral'
-  primary key (document_id, scope_type, scope_id)
+  unique (document_id, scope_type, scope_id)
 );
 
 create table document_chunks (
@@ -116,7 +121,11 @@ create table document_chunks (
   content text not null,
   embedding vector(1536)
 );
-create index on document_chunks using ivfflat (embedding vector_cosine_ops);
+-- hnsw em vez de ivfflat: ivfflat usa clustering aproximado que degenera em
+-- tabelas pequenas (pode devolver 0 resultados mesmo havendo correspondência)
+-- — problema real com o volume de dados do piloto. hnsw constrói de forma
+-- incremental e funciona corretamente independentemente do número de linhas.
+create index on document_chunks using hnsw (embedding vector_cosine_ops);
 
 -- === Conversas ===
 create table conversations (
