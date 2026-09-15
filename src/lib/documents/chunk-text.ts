@@ -9,7 +9,14 @@ export type ChunkOptions = {
 };
 
 export function chunkText(text: string, { chunkSize = DEFAULT_CHUNK_CHARS, overlap = DEFAULT_OVERLAP_CHARS }: ChunkOptions = {}): string[] {
-  const normalized = text.replace(/\s+/g, " ").trim();
+  // Normaliza só espaços/tabs horizontais — preserva quebras de linha.
+  // Tabelas em markdown (ver extract-text.ts) dependem de \n para
+  // manter a estrutura linha/coluna; colapsar tudo para espaços
+  // transformava-as num blob sem fronteiras de linha reconhecíveis.
+  const normalized = text
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   if (!normalized) return [];
 
   const chunks: string[] = [];
@@ -19,8 +26,15 @@ export function chunkText(text: string, { chunkSize = DEFAULT_CHUNK_CHARS, overl
     let end = Math.min(start + chunkSize, normalized.length);
 
     if (end < normalized.length) {
-      const lastSpace = normalized.lastIndexOf(" ", end);
-      if (lastSpace > start) end = lastSpace;
+      // Prefere cortar numa quebra de linha (não parte uma linha/linha de
+      // tabela ao meio); só recua para o último espaço se não houver.
+      const lastNewline = normalized.lastIndexOf("\n", end);
+      if (lastNewline > start) {
+        end = lastNewline;
+      } else {
+        const lastSpace = normalized.lastIndexOf(" ", end);
+        if (lastSpace > start) end = lastSpace;
+      }
     }
 
     chunks.push(normalized.slice(start, end).trim());
