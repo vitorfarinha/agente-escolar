@@ -1,4 +1,5 @@
 import { PDFParse } from "pdf-parse";
+import { CanvasFactory } from "pdf-parse/worker";
 
 export type ExtractableFile = {
   buffer: Buffer;
@@ -12,7 +13,11 @@ export type ExtractableFile = {
  */
 export async function extractText({ buffer, mimeType }: ExtractableFile): Promise<string> {
   if (mimeType === "application/pdf") {
-    const parser = new PDFParse({ data: buffer });
+    // CanvasFactory explícito: sem isto, o pdf-parse tenta auto-polyfill
+    // DOMMatrix via @napi-rs/canvas e falha de forma pouco clara em runtimes
+    // serverless (ex: Vercel) — apanhado ao ver "DOMMatrix is not defined"
+    // em produção, mesmo só ao listar documentos (o import falhava sozinho).
+    const parser = new PDFParse({ data: buffer, CanvasFactory });
     try {
       const textResult = await parser.getText();
       const tableResult = await parser.getTable();
