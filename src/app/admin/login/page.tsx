@@ -33,35 +33,37 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "80px auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 24 }}>Agente Escolar — Admin</h1>
+    <main className="mx-auto mt-20 max-w-sm">
+      <h1 className="mb-6 text-xl font-semibold">Agente Escolar — Admin</h1>
 
-      {linkError && (
-        <p style={{ color: "crimson", marginBottom: 16 }}>
-          O link de acesso é inválido ou expirou. Pede um novo abaixo.
-        </p>
-      )}
+      {linkError && <p className="mb-4 text-sm text-red-600">O link de acesso é inválido ou expirou. Pede um novo abaixo.</p>}
 
       {status === "sent" ? (
-        <p>
+        <p className="text-sm">
           Enviámos um link de acesso para <strong>{email}</strong>. Verifica o teu email (em desenvolvimento local, o
           Mailpit em <code>http://127.0.0.1:54324</code>) e clica no link para entrar.
         </p>
       ) : (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label htmlFor="email">Email</label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
           <input
             id="email"
             type="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            style={{ padding: 8, border: "1px solid #ccc", borderRadius: 4 }}
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
           />
-          <button type="submit" disabled={status === "sending"} style={{ padding: 10, borderRadius: 4 }}>
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
             {status === "sending" ? "A enviar..." : "Enviar link de acesso"}
           </button>
-          {status === "error" && <p style={{ color: "crimson" }}>{errorMessage}</p>}
+          {status === "error" && <p className="text-sm text-red-600">{errorMessage}</p>}
         </form>
       )}
     </main>

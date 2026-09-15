@@ -35,21 +35,25 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", display: "flex", minHeight: "100vh" }}>
-      <nav style={{ width: 200, borderRight: "1px solid #e5e5e5", padding: 16, flexShrink: 0 }}>
-        <p style={{ fontWeight: 600, marginBottom: 16 }}>Agente Escolar</p>
-        <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex min-h-screen">
+      <nav className="w-52 shrink-0 border-r border-gray-200 p-4">
+        <p className="mb-4 font-semibold">Agente Escolar</p>
+        <ul className="flex flex-col gap-2 text-sm">
           {NAV_LINKS.map((link) => (
             <li key={link.href}>
-              <Link href={link.href}>{link.label}</Link>
+              <Link href={link.href} className="text-gray-700 hover:text-gray-950 hover:underline">
+                {link.label}
+              </Link>
             </li>
           ))}
         </ul>
-        <form action={signOut} style={{ marginTop: 24 }}>
-          <button type="submit">Sair</button>
+        <form action={signOut} className="mt-6">
+          <button type="submit" className="text-sm text-gray-500 hover:underline">
+            Sair
+          </button>
         </form>
       </nav>
-      <main style={{ flex: 1, padding: 24 }}>{children}</main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }
