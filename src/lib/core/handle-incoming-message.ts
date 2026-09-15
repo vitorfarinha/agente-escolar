@@ -49,17 +49,22 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
     conversationId = newConversation.id;
   }
 
-  const { error: messagesError } = await supabase.from("messages").insert([
-    { conversation_id: conversationId, sender: "guardian", content: msg.text },
-    {
-      conversation_id: conversationId,
-      sender: "agent",
-      content: answerText,
-      referenced_document_ids: referencedDocumentIds,
-    },
-  ]);
+  const { data: insertedMessages, error: messagesError } = await supabase
+    .from("messages")
+    .insert([
+      { conversation_id: conversationId, sender: "guardian", content: msg.text },
+      {
+        conversation_id: conversationId,
+        sender: "agent",
+        content: answerText,
+        referenced_document_ids: referencedDocumentIds,
+      },
+    ])
+    .select("id, sender");
 
   if (messagesError) throw new Error(`Falha ao gravar mensagens: ${messagesError.message}`);
 
-  return { text: answerText, referencedDocumentIds };
+  const agentMessageId = insertedMessages?.find((message) => message.sender === "agent")?.id;
+
+  return { text: answerText, referencedDocumentIds, messageId: agentMessageId };
 }

@@ -13,4 +13,6 @@ export type IncomingMessage = {
 export type OutgoingMessage = {
   text: string;
   referencedDocumentIds: string[];
+  /** id da mensagem do agente persistida em `messages` — ausente quando a conversa nem chega a ser gravada (ex: encarregado não identificado). */
+  messageId?: string;
 };

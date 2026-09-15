@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { ChatClient, type ChatMessage } from "./chat-client";
+import type { ChatMessageData } from "@/components/chat/chat-message";
+import { ChatClient } from "./chat-client";
 
 export default async function ChatPage() {
   const supabase = await createServerSupabaseClient();
@@ -10,7 +11,7 @@ export default async function ChatPage() {
     redirect("/login");
   }
 
-  const { data: guardian } = await supabase.from("guardians").select("id, name").maybeSingle();
+  const { data: guardian } = await supabase.from("guardians").select("id, name, email").maybeSingle();
 
   if (!guardian) {
     await supabase.auth.signOut();
@@ -26,7 +27,7 @@ export default async function ChatPage() {
     .limit(1)
     .maybeSingle();
 
-  let initialMessages: ChatMessage[] = [];
+  let initialMessages: ChatMessageData[] = [];
 
   if (conversation) {
     const { data: messages } = await supabase
@@ -35,8 +36,20 @@ export default async function ChatPage() {
       .eq("conversation_id", conversation.id)
       .order("created_at", { ascending: true });
 
-    initialMessages = messages ?? [];
+    initialMessages = (messages ?? []).map((message) => ({
+      id: message.id,
+      role: message.sender === "guardian" ? "user" : "assistant",
+      content: message.content,
+      messageId: message.id,
+    }));
   }
 
-  return <ChatClient guardianName={guardian.name} initialMessages={initialMessages} />;
+  return (
+    <ChatClient
+      guardianId={guardian.id}
+      guardianName={guardian.name}
+      guardianEmail={guardian.email}
+      initialMessages={initialMessages}
+    />
+  );
 }

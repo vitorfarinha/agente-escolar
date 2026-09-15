@@ -2,8 +2,9 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { LiquidBackground } from "@/components/liquid-background";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function LoginPage() {
   return (
@@ -44,48 +45,66 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <LiquidBackground />
-
-      <main className="w-full max-w-sm rounded-3xl border border-white/40 bg-white/60 p-8 shadow-[0_8px_32px_rgba(31,41,55,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/10">
-        <h1 className="mb-1 text-2xl font-semibold text-gray-900 dark:text-white">Agente Escolar</h1>
-        <p className="mb-6 text-sm text-gray-600 dark:text-gray-300">Entra com o teu email para falares com o assistente da escola.</p>
+    <div className="flex min-h-screen items-center justify-center bg-surface-bg px-4">
+      <main className="mx-4 w-full max-w-[400px] rounded-2xl bg-surface-card p-8 shadow-md">
+        <div className="mb-6 flex flex-col items-center gap-4 text-center">
+          <BrandLogo withWordmark={false} />
+          <div>
+            <h1 className="text-xl font-bold text-primary">Entrar no Agente Escolar</h1>
+            <p className="mt-1 text-sm text-secondary">Acede com o email associado à escola do teu educando</p>
+          </div>
+        </div>
 
         {linkError && (
-          <p className="mb-4 rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-            O link de acesso é inválido ou expirou. Pede um novo abaixo.
+          <p className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600" role="alert">
+            O link de acesso é inválido ou já foi usado. Pede um novo abaixo.
           </p>
         )}
         {notRegistered && (
-          <p className="mb-4 rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+          <p className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600" role="alert">
             Não encontrámos esse email associado a nenhum educando. Contacta a escola para seres registado.
           </p>
         )}
 
         {status === "sent" ? (
-          <p className="text-sm text-gray-700 dark:text-gray-200">
-            Enviámos um link de acesso para <strong>{email}</strong>. Verifica o teu email e clica no link para entrar.
+          <p className="text-center text-sm text-secondary">
+            Enviámos um link de acesso para <strong className="font-semibold text-primary">{email}</strong>. Verifica o teu email e
+            clica no link para entrar.
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <label htmlFor="email" className="sr-only">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               required
+              autoComplete="email"
               placeholder="o-teu-email@exemplo.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none ring-sky-400 focus:ring-2 dark:border-white/10 dark:bg-white/10 dark:text-white"
+              className="rounded-xl border border-subtle px-4 py-3 text-sm text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none"
             />
             <button
               type="submit"
               disabled={status === "sending"}
-              className="rounded-2xl bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-900/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-900 focus-visible:ring-offset-2"
             >
+              {status === "sending" && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
               {status === "sending" ? "A enviar..." : "Enviar link de acesso"}
             </button>
-            {status === "error" && <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>}
+            {status === "error" && (
+              <p className="text-sm text-red-600" role="alert">
+                {errorMessage}
+              </p>
+            )}
           </form>
         )}
+
+        <p className="mt-6 text-center text-xs text-muted">
+          Os teus dados são geridos pela escola do teu educando. Em caso de dúvida, contacta diretamente a secretaria.
+        </p>
       </main>
     </div>
   );
