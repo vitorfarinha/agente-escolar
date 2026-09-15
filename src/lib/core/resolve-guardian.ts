@@ -9,6 +9,7 @@ export async function resolveGuardian(channel: Channel, identifier: string): Pro
     .select("guardian_id")
     .eq("channel", channel)
     .eq("identifier", identifier)
+    .eq("verified", true)
     .maybeSingle();
 
   if (error) throw new Error(`Falha ao resolver encarregado: ${error.message}`);

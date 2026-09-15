@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleIncomingMessage } from "@/lib/core/handle-incoming-message";
 
 /**
- * Endpoint de desenvolvimento para testar o núcleo (Fase 3) manualmente,
- * sem depender de um canal real (email/chat) — que chegam nas Fases 4/6.
- * Remover quando esses canais estiverem prontos e forem o caminho de teste.
+ * Utilitário de desenvolvimento para testar o núcleo diretamente, sem
+ * passar por um canal real. Mantido de propósito (não é código morto) —
+ * usado por scripts/test-ingest-and-ask.sh para testes rápidos por
+ * linha de comando, mesmo com email/chat já disponíveis.
  */
 export async function POST(request: NextRequest) {
   const internalKey = request.headers.get("x-internal-api-key");

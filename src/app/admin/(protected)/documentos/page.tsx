@@ -172,13 +172,16 @@ export default async function DocumentosPage() {
         {documents?.map((document) => {
           const docScopes = scopes?.filter((s) => s.document_id === document.id) ?? [];
           const hasChunks = chunkCounts?.some((c) => c.document_id === document.id) ?? false;
+          const hasText = Boolean(document.raw_text?.trim());
 
           return (
             <div key={document.id} className="rounded border border-gray-200 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <p className="font-medium">{document.title}</p>
                 <div className="flex gap-2 text-xs">
-                  <span className="rounded bg-green-100 px-2 py-1 text-green-800">extraído</span>
+                  <span className={`rounded px-2 py-1 ${hasText ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                    {hasText ? "extraído" : "sem texto"}
+                  </span>
                   <span className={`rounded px-2 py-1 ${hasChunks ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
                     {hasChunks ? "com embeddings" : "sem embeddings"}
                   </span>

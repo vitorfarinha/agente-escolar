@@ -6,7 +6,9 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const searchParams = useSearchParams();
-  const linkError = searchParams.get("error") === "link_invalido";
+  const errorParam = searchParams.get("error");
+  const linkError = errorParam === "link_invalido";
+  const notAuthorized = errorParam === "nao_autorizado";
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -37,6 +39,9 @@ export default function AdminLoginPage() {
       <h1 className="mb-6 text-xl font-semibold">Agente Escolar — Admin</h1>
 
       {linkError && <p className="mb-4 text-sm text-red-600">O link de acesso é inválido ou expirou. Pede um novo abaixo.</p>}
+      {notAuthorized && (
+        <p className="mb-4 text-sm text-red-600">Esse email não tem acesso de administrador. Contacta um admin existente se precisas de acesso.</p>
+      )}
 
       {status === "sent" ? (
         <p className="text-sm">
