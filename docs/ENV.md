@@ -36,6 +36,17 @@ Estas são reais em qualquer ambiente (local ou produção) — não têm versã
 |---|---|
 | `INTERNAL_API_KEY` | Protege os endpoints `/api/v1/query` e `/api/v1/documents` que o Awl (e mais tarde outros canais) vão chamar |
 
+## WhatsApp (Meta Cloud API)
+
+| Variável | Onde se usa |
+|---|---|
+| `WHATSAPP_ACCESS_TOKEN` | Backend — autentica os pedidos de envio (`POST .../messages`) à Graph API |
+| `WHATSAPP_PHONE_NUMBER_ID` | Backend — identifica o número de WhatsApp remetente na Graph API |
+| `WHATSAPP_VERIFY_TOKEN` | Backend — segredo à escolha, usado só no handshake `GET` de subscrição do webhook (comparado com `hub.verify_token`) |
+| `WHATSAPP_APP_SECRET` | Backend — valida a assinatura `X-Hub-Signature-256` dos webhooks `POST`, confirmando que vêm mesmo da Meta. **Sem esta variável definida, a verificação de assinatura é ignorada** — ver `docs/HISTORICO.md` para o estado desta limitação. |
+
+Callback URL a configurar no dashboard da Meta (WhatsApp → Configuration): `https://agente-escolar.vercel.app/api/webhooks/whatsapp-inbound`.
+
 ## Ficheiro `.env.example`
 
 Mantém sempre um `.env.example` no repositório (sem valores reais) para que qualquer pessoa — ou o próprio Claude Code numa sessão nova — saiba que variáveis o projeto precisa:

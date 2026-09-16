@@ -1,18 +1,13 @@
 import type { IncomingMessage, OutgoingMessage } from "@/lib/core/types";
 
 /**
- * Adaptador de canal — WhatsApp (stub, Fase 7 do PLANO.md). Só traduz
- * formatos entre a Meta Cloud API e o núcleo (IncomingMessage/OutgoingMessage);
- * nenhuma lógica de negócio deve viver aqui.
+ * Adaptador de canal — WhatsApp. Só traduz formatos entre a Meta Cloud API
+ * e o núcleo (IncomingMessage/OutgoingMessage); nenhuma lógica de negócio
+ * deve viver aqui. Usado pelo webhook em
+ * `src/app/api/webhooks/whatsapp-inbound/route.ts`.
  *
  * Reconhecimento do remetente já funciona sem alterações: `channel_identities`
  * já suporta `whatsapp` como tipo de canal (ver schema em docs/PLANO.md).
- *
- * TODO: ligar à Meta Cloud API quando pronto — falta o webhook em
- * `POST /api/webhooks/whatsapp-inbound` (verificação do desafio do
- * webhook + assinatura do payload) e a chamada de envio via
- * `POST https://graph.facebook.com/<versao>/<phone_number_id>/messages`
- * com `WHATSAPP_ACCESS_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` (ver docs/ENV.md).
  */
 
 /** Forma mínima do payload de webhook da Meta Cloud API para uma mensagem de texto recebida. */

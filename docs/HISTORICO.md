@@ -10,6 +10,50 @@ construir) e `docs/ENV.md` para variáveis de ambiente.
 
 ---
 
+## 2026-09-16 (7) — Ativação do canal WhatsApp (webhook real)
+
+O utilizador já tinha app da Meta criada (WhatsApp Business, número de
+teste) e trouxe as credenciais (Access Token, Phone Number ID). Implementado
+o que faltava da Fase 7 para ligar o adaptador stub a um webhook real:
+
+- `src/app/api/webhooks/whatsapp-inbound/route.ts` — `GET` responde ao
+  handshake de subscrição (`hub.verify_token` contra `WHATSAPP_VERIFY_TOKEN`);
+  `POST` traduz o payload via `whatsappToIncomingMessage`, chama o núcleo
+  (`handleIncomingMessage`, sem alterações — o desenho agnóstico de canal
+  seguiu-se sem fricção) e responde via Graph API com
+  `outgoingMessageToWhatsappReply`.
+- Novas variáveis: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`,
+  `WHATSAPP_VERIFY_TOKEN` (gerado localmente, não veio da Meta),
+  `WHATSAPP_APP_SECRET` (documentada mas ainda não configurada — ver
+  limitação abaixo). Documentadas em `docs/ENV.md`/`.env.example` sem
+  valores reais; valores reais só em `.env.local` (confirmado fora do
+  git) — para produção, a escrita direta das secret env vars na Vercel
+  foi bloqueada pelo classificador de auto mode do Claude Code
+  (`Secret-Store Writes`), por design; ficou por fazer manualmente pelo
+  utilizador (comandos dados na conversa).
+- **Limitação conhecida:** o `POST` do webhook não verifica a assinatura
+  `X-Hub-Signature-256` porque não temos ainda o App Secret da app da
+  Meta (diferente do Access Token) — a verificação está implementada mas
+  só ativa se `WHATSAPP_APP_SECRET` estiver definida. Sem isso, qualquer
+  pedido POST bem formado ao Callback URL é aceite sem confirmar que veio
+  mesmo da Meta — como o número de telefone é a chave de identificação
+  em `channel_identities`, isto é uma superfície de spoofing a fechar
+  antes de abrir este canal a famílias reais.
+
+### Validação
+
+- `pnpm build`/`pnpm lint` limpos; rota nova aparece na lista de rotas.
+- Handshake testado localmente: token correto → 200 + eco do challenge;
+  token errado → 403.
+- Mensagem simulada testada localmente contra a Graph API real (com o
+  Access Token e Phone Number ID fornecidos): o pedido foi aceite e
+  autenticado pela Meta, recusado só por "Recipient phone number not in
+  allowed list" (código 131030) — esperado em modo de teste, sem
+  destinatário verificado na allow-list; confirma que o núcleo processou
+  a mensagem e a chamada de envio está corretamente autenticada.
+
+---
+
 ## 2026-09-16 (6) — Bug real em produção: retrieval vetorial perdia termos exatos
 
 Reportado pelo utilizador: turma 2ºC, aluna Madalena. Pergunta "quando é
