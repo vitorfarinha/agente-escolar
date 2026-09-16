@@ -76,6 +76,63 @@ pior, uma fonte de falsos negativos.
 
 ---
 
+## 2026-09-16 (4) — Bug real em produção: extração não gravava rotinas sem hora exata
+
+Reportado pelo utilizador logo após o primeiro teste real em produção:
+"A Madalena tem ballet às quartas depois do fim das aulas" não gerou
+nenhuma nota, e a resposta do assistente tratou a frase como uma
+pergunta sem resposta ("não tenho informação suficiente... contacte a
+escola"), em vez de reconhecer a informação partilhada.
+
+### Diagnóstico (dados reais de produção, via SQL direto + Vercel runtime logs)
+
+- `family_notes` estava completamente vazia em produção — confirmado
+  antes de qualquer fix.
+- A guardiã em causa só tem uma educanda (Madalena) — não era um caso
+  de ambiguidade entre vários filhos.
+- Sem erros nos runtime logs do Vercel à volta do timestamp da
+  mensagem — a chamada não estava a rebentar, estava a devolver
+  `has_fact: false` de forma "correta" segundo o prompt tal como
+  estava escrito.
+- Reproduzido localmente (com o nome da estudante de teste trocado
+  para "Madalena", para replicar fielmente): `extractFamilyFact`
+  devolvia sempre `has_fact:false` para frases com timing vago/recorrente
+  ("às quartas depois das aulas", "por volta das 16h", "todas as
+  quartas-feiras"), mas `has_fact:true` assim que havia uma hora exata
+  ("às 17h"). Causa: o prompt dizia para não extrair "comentários
+  vagos", e o modelo estava a aplicar essa regra à IMPRECISÃO DA HORA,
+  não apenas à ausência de facto — apesar de o próprio prompt já dizer
+  que rotinas recorrentes devem ter `event_date=null`.
+
+### Correções
+
+- `src/lib/core/extract-family-fact.ts` — `SYSTEM_PROMPT` reescrito
+  para separar claramente as duas coisas: conservador quanto a QUAL a
+  criança e SE existe mesmo um facto; nunca conservador quanto à
+  precisão da hora. Acrescentado um exemplo explícito no próprio
+  prompt ("a Madalena tem ballet às quartas depois das aulas" → extrair
+  com `event_date=null`).
+- `src/lib/core/generate-answer.ts` — a mensagem do encarregado nem
+  sempre é uma pergunta; pode ser só informação partilhada. Nova regra
+  no `SYSTEM_PROMPT` para reconhecer brevemente ("Ok, fica registado.")
+  em vez de tratar como pergunta sem resposta. O rótulo da mensagem do
+  utilizador no prompt também mudou de "Pergunta do encarregado" para
+  "Mensagem do encarregado" — o rótulo antigo estava a enviesar o
+  modelo a tratar tudo como pergunta.
+
+### Validação
+
+- Reproduzido o bug exato localmente antes de corrigir; confirmado que
+  a mesma mensagem, após a correção, é extraída (`event_date=null`,
+  como esperado para uma rotina recorrente) e a resposta passa a ser
+  "Ok, fica registado. A Madalena tem ballet às quartas após o termo
+  das aulas." em vez do texto de "não tenho informação suficiente".
+- `tsc`, `eslint`, `next build` limpos.
+- Sem migração nova — só alterações de prompt/lógica, sem tocar em
+  schema.
+
+---
+
 ## 2026-09-16 (2) — Ingestão de páginas web como fonte de conhecimento
 
 Pedido do utilizador: além do RAG sobre documentos (PDF/email), poder

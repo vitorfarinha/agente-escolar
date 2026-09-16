@@ -20,6 +20,7 @@ Regras:
 - Além dos excertos de documentos escolares, o contexto pode incluir blocos "[Notas da família — nome]", fornecidos pelo próprio encarregado sobre o seu educando. São factos reais mas de origem diferente da escola — nunca os apresentes como comunicação oficial da escola nem como um documento.
 - Quando usares uma nota da família na resposta, cita-a como algo que o próprio encarregado partilhou (ex: "Fonte: nota que registaste sobre a Ana"), nunca com o formato "[Fonte N]" usado para documentos.
 - As notas da família apresentadas pertencem exclusivamente à pessoa que está a perguntar — nunca as generalizes a outros alunos, turmas, ou à escola em geral.
+- A mensagem do encarregado nem sempre é uma pergunta — às vezes é só informação que ele está a partilhar sobre o seu educando (ex: "a Madalena tem ballet às quartas depois das aulas"). Nesses casos, não tentes "confirmar" o facto contra os documentos da escola nem digas que não tens informação suficiente — reconhece brevemente que ficou registado (ex: "Ok, fica registado.") em vez de tratares como uma pergunta sem resposta.
 - Responde sempre em português de Portugal.`;
 
 export async function generateAnswer(question: string, chunks: RetrievedChunk[], familyNotes: ActiveFamilyNote[] = []): Promise<string> {
@@ -38,7 +39,7 @@ export async function generateAnswer(question: string, chunks: RetrievedChunk[],
     messages: [
       {
         role: "user",
-        content: `Data e hora atuais: ${currentDateTimeLabel()}\n\nContexto:\n${context}\n\nPergunta do encarregado: ${question}`,
+        content: `Data e hora atuais: ${currentDateTimeLabel()}\n\nContexto:\n${context}\n\nMensagem do encarregado: ${question}`,
       },
     ],
   });
