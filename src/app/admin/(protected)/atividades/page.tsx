@@ -1,5 +1,7 @@
 import { revalidatePath } from "next/cache";
+import { Plus, Trash2 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { Button, Card, Input, PageHeader, Select } from "@/components/admin/ui";
 
 async function createActivity(formData: FormData) {
   "use server";
@@ -45,60 +47,49 @@ export default async function AtividadesPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Atividades</h1>
+      <PageHeader title="Atividades" />
 
-      <form action={createActivity} className="mb-6 flex flex-wrap gap-2">
-        <select name="school_id" required className="rounded border border-gray-300 px-3 py-2 text-sm">
-          <option value="">Escola</option>
-          {schools?.map((school) => (
-            <option key={school.id} value={school.id}>
-              {school.name}
-            </option>
-          ))}
-        </select>
-        <input name="name" required placeholder="Nome (ex: Natação)" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <input name="activity_type" placeholder="Tipo (ex: desportiva)" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <input name="description" placeholder="Descrição" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <button type="submit" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
-          Adicionar
-        </button>
-      </form>
+      <Card className="mb-6">
+        <form action={createActivity} className="flex flex-wrap gap-2">
+          <Select name="school_id" required className="min-w-40">
+            <option value="">Escola</option>
+            {schools?.map((school) => (
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
+            ))}
+          </Select>
+          <Input name="name" required placeholder="Nome (ex: Natação)" className="min-w-40 flex-1" />
+          <Input name="activity_type" placeholder="Tipo (ex: desportiva)" className="min-w-40" />
+          <Input name="description" placeholder="Descrição" className="min-w-40 flex-1" />
+          <Button type="submit">
+            <Plus size={16} aria-hidden="true" />
+            Adicionar
+          </Button>
+        </form>
+      </Card>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {activities?.map((activity) => (
-            <tr key={activity.id} className="border-t border-gray-200">
-              <td className="py-2">
-                <form action={updateActivity} className="flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="id" value={activity.id} />
-                  <input name="name" defaultValue={activity.name} className="w-32 rounded border border-gray-300 px-2 py-1" />
-                  <input
-                    name="activity_type"
-                    defaultValue={activity.activity_type ?? ""}
-                    className="w-28 rounded border border-gray-300 px-2 py-1"
-                  />
-                  <input
-                    name="description"
-                    defaultValue={activity.description ?? ""}
-                    className="w-40 rounded border border-gray-300 px-2 py-1"
-                  />
-                  <button type="submit" className="text-blue-600 hover:underline">
-                    Guardar
-                  </button>
-                </form>
-              </td>
-              <td className="py-2 text-right">
-                <form action={deleteActivity}>
-                  <input type="hidden" name="id" value={activity.id} />
-                  <button type="submit" className="text-red-600 hover:underline">
-                    Eliminar
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Card className="flex flex-col gap-3">
+        {(!activities || activities.length === 0) && <p className="text-sm text-secondary">Ainda não há atividades criadas.</p>}
+        {activities?.map((activity) => (
+          <form
+            key={activity.id}
+            action={updateActivity}
+            className="flex flex-wrap items-center gap-2 border-b border-subtle pb-3 last:border-0 last:pb-0"
+          >
+            <input type="hidden" name="id" value={activity.id} />
+            <Input name="name" defaultValue={activity.name} className="w-36" />
+            <Input name="activity_type" defaultValue={activity.activity_type ?? ""} className="w-32" placeholder="Tipo" />
+            <Input name="description" defaultValue={activity.description ?? ""} className="flex-1 min-w-40" placeholder="Descrição" />
+            <Button type="submit" variant="link">
+              Guardar
+            </Button>
+            <Button type="submit" formAction={deleteActivity} variant="icon-danger" aria-label="Eliminar atividade">
+              <Trash2 size={16} aria-hidden="true" />
+            </Button>
+          </form>
+        ))}
+      </Card>
     </div>
   );
 }

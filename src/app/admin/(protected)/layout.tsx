@@ -1,17 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-const NAV_LINKS = [
-  { href: "/admin", label: "Início" },
-  { href: "/admin/escolas", label: "Escolas" },
-  { href: "/admin/turmas", label: "Turmas" },
-  { href: "/admin/atividades", label: "Atividades" },
-  { href: "/admin/alunos", label: "Alunos" },
-  { href: "/admin/encarregados", label: "Encarregados" },
-  { href: "/admin/documentos", label: "Documentos" },
-  { href: "/admin/lembretes", label: "Lembretes" },
-];
+import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminNav } from "@/components/admin/admin-nav";
 
 async function signOut() {
   "use server";
@@ -38,26 +28,15 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     redirect("/admin/login?error=nao_autorizado");
   }
 
+  const email = typeof claimsData.claims.email === "string" ? claimsData.claims.email : "Admin";
+
   return (
-    <div className="flex min-h-screen">
-      <nav className="w-52 shrink-0 border-r border-gray-200 p-4">
-        <p className="mb-4 font-semibold">Agente Escolar</p>
-        <ul className="flex flex-col gap-2 text-sm">
-          {NAV_LINKS.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} className="text-gray-700 hover:text-gray-950 hover:underline">
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <form action={signOut} className="mt-6">
-          <button type="submit" className="text-sm text-gray-500 hover:underline">
-            Sair
-          </button>
-        </form>
-      </nav>
-      <main className="flex-1 p-6">{children}</main>
+    <div className="flex min-h-screen flex-col bg-surface-bg">
+      <AdminHeader email={email} signOutAction={signOut} />
+      <div className="flex flex-1">
+        <AdminNav />
+        <main className="flex-1 p-6 sm:p-8">{children}</main>
+      </div>
     </div>
   );
 }

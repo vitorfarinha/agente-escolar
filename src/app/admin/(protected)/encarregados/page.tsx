@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
+import { Plus, X } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EscolaSelector } from "@/components/escola-selector";
+import { Badge, Button, Card, FieldLabel, Input, PageHeader, Select } from "@/components/admin/ui";
 
 const CHANNELS = ["email", "whatsapp", "sms", "telegram", "webapp", "awl"] as const;
 
@@ -90,8 +92,8 @@ export default async function EncarregadosPage({ searchParams }: { searchParams:
   if (!schools || schools.length === 0) {
     return (
       <div>
-        <h1 className="mb-4 text-xl font-semibold">Encarregados de educação</h1>
-        <p className="text-sm text-gray-600">Cria primeiro uma escola em &quot;Escolas&quot;.</p>
+        <PageHeader title="Encarregados de educação" />
+        <p className="text-sm text-secondary">Cria primeiro uma escola em &quot;Escolas&quot;.</p>
       </div>
     );
   }
@@ -108,111 +110,118 @@ export default async function EncarregadosPage({ searchParams }: { searchParams:
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Encarregados de educação</h1>
+      <PageHeader title="Encarregados de educação" />
 
       <EscolaSelector schools={schools} selectedId={selectedSchoolId} />
 
-      <div className="mb-8 rounded border border-gray-200 p-4">
-        <p className="mb-3 font-medium">Associar encarregados a alunos</p>
+      <Card className="mb-6">
+        <p className="mb-3 font-semibold text-primary">Associar encarregados a alunos</p>
         {!students || students.length === 0 ? (
-          <p className="text-sm text-gray-500">Esta escola ainda não tem alunos.</p>
+          <p className="text-sm text-secondary">Esta escola ainda não tem alunos.</p>
         ) : !guardians || guardians.length === 0 ? (
-          <p className="text-sm text-gray-500">Ainda não há encarregados criados.</p>
+          <p className="text-sm text-secondary">Ainda não há encarregados criados.</p>
         ) : (
           <form action={batchAssociate} className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="mb-1 block text-xs text-gray-600">Encarregado(s)</label>
-              <select name="guardian_ids" multiple required size={5} className="w-48 rounded border border-gray-300 px-2 py-1 text-sm">
+              <FieldLabel>Encarregado(s)</FieldLabel>
+              <Select name="guardian_ids" multiple required size={5} className="w-48">
                 {guardians.map((guardian) => (
                   <option key={guardian.id} value={guardian.id}>
                     {guardian.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-600">Aluno(s) desta escola</label>
-              <select name="student_ids" multiple required size={5} className="w-48 rounded border border-gray-300 px-2 py-1 text-sm">
+              <FieldLabel>Aluno(s) desta escola</FieldLabel>
+              <Select name="student_ids" multiple required size={5} className="w-48">
                 {students.map((student) => (
                   <option key={student.id} value={student.id}>
                     {student.first_name} {student.last_name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-600">Relação</label>
-              <input name="relationship" placeholder="mãe/pai/..." className="rounded border border-gray-300 px-2 py-1.5 text-sm" />
+              <FieldLabel>Relação</FieldLabel>
+              <Input name="relationship" placeholder="mãe/pai/..." />
             </div>
-            <button type="submit" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
+            <Button type="submit">
+              <Plus size={16} aria-hidden="true" />
               Associar
-            </button>
+            </Button>
           </form>
         )}
-      </div>
+      </Card>
 
-      <form action={createGuardian} className="mb-6 flex flex-wrap gap-2">
-        <input name="name" required placeholder="Nome" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <input name="email" type="email" placeholder="Email" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <input name="phone" placeholder="Telemóvel" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <button type="submit" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
-          Adicionar encarregado
-        </button>
-      </form>
+      <Card className="mb-6">
+        <form action={createGuardian} className="flex flex-wrap gap-2">
+          <Input name="name" required placeholder="Nome" className="min-w-40" />
+          <Input name="email" type="email" placeholder="Email" className="min-w-48" />
+          <Input name="phone" placeholder="Telemóvel" className="min-w-36" />
+          <Button type="submit">
+            <Plus size={16} aria-hidden="true" />
+            Adicionar encarregado
+          </Button>
+        </form>
+      </Card>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {guardians?.map((guardian) => {
           const links = guardianStudents?.filter((gs) => gs.guardian_id === guardian.id) ?? [];
           const guardianIdentities = identities?.filter((ci) => ci.guardian_id === guardian.id) ?? [];
 
           return (
-            <div key={guardian.id} className="rounded border border-gray-200 p-4">
-              <form action={updateGuardian} className="mb-3 flex flex-wrap items-center gap-2">
+            <Card key={guardian.id}>
+              <form action={updateGuardian} className="mb-4 flex flex-wrap items-center gap-2">
                 <input type="hidden" name="id" value={guardian.id} />
-                <input name="name" defaultValue={guardian.name} className="w-32 rounded border border-gray-300 px-2 py-1 text-sm" />
-                <input name="email" defaultValue={guardian.email ?? ""} className="w-48 rounded border border-gray-300 px-2 py-1 text-sm" />
-                <input name="phone" defaultValue={guardian.phone ?? ""} className="w-32 rounded border border-gray-300 px-2 py-1 text-sm" />
-                <button type="submit" className="text-sm text-blue-600 hover:underline">
+                <Input name="name" defaultValue={guardian.name} className="w-32" />
+                <Input name="email" defaultValue={guardian.email ?? ""} className="w-48" />
+                <Input name="phone" defaultValue={guardian.phone ?? ""} className="w-32" />
+                <Button type="submit" variant="link">
                   Guardar
-                </button>
+                </Button>
+                <Button type="submit" formAction={deleteGuardian} variant="danger-link">
+                  Eliminar encarregado
+                </Button>
               </form>
 
-              <div className="grid grid-cols-2 gap-6 text-sm">
+              <div className="grid grid-cols-1 gap-6 text-sm sm:grid-cols-2">
                 <div>
-                  <p className="mb-1 font-medium text-gray-700">Educandos</p>
-                  <ul className="flex flex-col gap-1">
+                  <p className="mb-2 font-medium text-primary">Educandos</p>
+                  <ul className="flex flex-col gap-1.5">
                     {links.map((link) => (
-                      <li key={link.student_id} className="flex items-center gap-2">
-                        <span>
+                      <li key={link.student_id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-bg px-3 py-1.5">
+                        <span className="text-primary">
                           {(link.students as unknown as { first_name: string; last_name: string } | null)?.first_name}{" "}
                           {(link.students as unknown as { first_name: string; last_name: string } | null)?.last_name}
-                          {link.relationship ? ` (${link.relationship})` : ""}
+                          {link.relationship ? <span className="text-secondary"> ({link.relationship})</span> : ""}
                         </span>
                         <form action={removeGuardianStudent}>
                           <input type="hidden" name="guardian_id" value={guardian.id} />
                           <input type="hidden" name="student_id" value={link.student_id} />
-                          <button type="submit" className="text-red-600 hover:underline">
-                            remover
+                          <button type="submit" aria-label="Remover associação" className="rounded-full p-1 text-secondary hover:bg-subtle hover:text-red-600">
+                            <X size={14} aria-hidden="true" />
                           </button>
                         </form>
                       </li>
                     ))}
-                    {links.length === 0 && <li className="text-gray-500">Sem educandos associados.</li>}
+                    {links.length === 0 && <Badge>Sem educandos associados</Badge>}
                   </ul>
                 </div>
 
                 <div>
-                  <p className="mb-1 font-medium text-gray-700">Identidades por canal</p>
-                  <ul className="mb-2 flex flex-col gap-1">
+                  <p className="mb-2 font-medium text-primary">Identidades por canal</p>
+                  <ul className="mb-2 flex flex-col gap-1.5">
                     {guardianIdentities.map((identity) => (
-                      <li key={identity.id} className="flex items-center gap-2">
-                        <span>
+                      <li key={identity.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-bg px-3 py-1.5">
+                        <span className="text-primary">
                           {identity.channel}: {identity.identifier}
                         </span>
                         <form action={removeChannelIdentity}>
                           <input type="hidden" name="id" value={identity.id} />
-                          <button type="submit" className="text-red-600 hover:underline">
-                            remover
+                          <button type="submit" aria-label="Remover identidade" className="rounded-full p-1 text-secondary hover:bg-subtle hover:text-red-600">
+                            <X size={14} aria-hidden="true" />
                           </button>
                         </form>
                       </li>
@@ -220,28 +229,21 @@ export default async function EncarregadosPage({ searchParams }: { searchParams:
                   </ul>
                   <form action={addChannelIdentity} className="flex gap-2">
                     <input type="hidden" name="guardian_id" value={guardian.id} />
-                    <select name="channel" required className="rounded border border-gray-300 px-2 py-1">
+                    <Select name="channel" required className="w-32">
                       {CHANNELS.map((channel) => (
                         <option key={channel} value={channel}>
                           {channel}
                         </option>
                       ))}
-                    </select>
-                    <input name="identifier" required placeholder="email/telefone/..." className="w-40 rounded border border-gray-300 px-2 py-1" />
-                    <button type="submit" className="text-blue-600 hover:underline">
+                    </Select>
+                    <Input name="identifier" required placeholder="email/telefone/..." className="flex-1" />
+                    <Button type="submit" variant="ghost">
                       Adicionar
-                    </button>
+                    </Button>
                   </form>
                 </div>
               </div>
-
-              <form action={deleteGuardian} className="mt-3">
-                <input type="hidden" name="id" value={guardian.id} />
-                <button type="submit" className="text-sm text-red-600 hover:underline">
-                  Eliminar encarregado
-                </button>
-              </form>
-            </div>
+            </Card>
           );
         })}
       </div>

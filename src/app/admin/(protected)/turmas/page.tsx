@@ -1,7 +1,9 @@
 import { revalidatePath } from "next/cache";
+import { Plus, X } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EscolaSelector } from "@/components/escola-selector";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Badge, Button, Card, Input, PageHeader } from "@/components/admin/ui";
 
 /** "5" ou "5º" -> {label:"5º", isNumeric:true}; "EPE" -> {label:"EPE", isNumeric:false} */
 function normalizeAno(raw: string): { label: string; isNumeric: boolean } {
@@ -116,8 +118,8 @@ export default async function TurmasPage({ searchParams }: { searchParams: Promi
   if (!schools || schools.length === 0) {
     return (
       <div>
-        <h1 className="mb-4 text-xl font-semibold">Turmas</h1>
-        <p className="text-sm text-gray-600">Cria primeiro uma escola em &quot;Escolas&quot;.</p>
+        <PageHeader title="Turmas" />
+        <p className="text-sm text-secondary">Cria primeiro uma escola em &quot;Escolas&quot;.</p>
       </div>
     );
   }
@@ -127,31 +129,32 @@ export default async function TurmasPage({ searchParams }: { searchParams: Promi
 
   const [{ data: cycles }, { data: classes }] = await Promise.all([
     supabase.from("cycles").select("id, name").eq("school_id", selectedSchoolId).order("name"),
-    supabase
-      .from("classes")
-      .select("id, name, year_groups(name, cycle_id)")
-      .order("name"),
+    supabase.from("classes").select("id, name, year_groups(name, cycle_id)").order("name"),
   ]);
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Turmas</h1>
+      <PageHeader title="Turmas" />
 
       <EscolaSelector schools={schools} selectedId={selectedSchoolId} />
 
-      <div className="mb-8">
-        <p className="mb-2 font-medium">Ciclos</p>
-        <form action={createCycle} className="mb-3 flex gap-2">
-          <input type="hidden" name="school_id" value={selectedSchoolId} />
-          <input name="name" required placeholder="Nome (ex: 1º Ciclo)" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-          <button type="submit" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
-            Adicionar ciclo
-          </button>
-        </form>
+      <div>
+        <p className="mb-3 text-sm font-semibold text-primary">Ciclos</p>
 
-        {(!cycles || cycles.length === 0) && <p className="text-sm text-gray-500">Ainda não há ciclos nesta escola.</p>}
+        <Card className="mb-4">
+          <form action={createCycle} className="flex gap-2">
+            <input type="hidden" name="school_id" value={selectedSchoolId} />
+            <Input name="name" required placeholder="Nome (ex: 1º Ciclo)" className="flex-1" />
+            <Button type="submit">
+              <Plus size={16} aria-hidden="true" />
+              Adicionar ciclo
+            </Button>
+          </form>
+        </Card>
 
-        <div className="flex flex-col gap-6">
+        {(!cycles || cycles.length === 0) && <p className="text-sm text-secondary">Ainda não há ciclos nesta escola.</p>}
+
+        <div className="flex flex-col gap-4">
           {cycles?.map((cycle) => {
             const cycleClasses = classes?.filter((c) => {
               const yg = c.year_groups as unknown as { cycle_id: string } | null;
@@ -159,42 +162,43 @@ export default async function TurmasPage({ searchParams }: { searchParams: Promi
             });
 
             return (
-              <div key={cycle.id} className="rounded border border-gray-200 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="font-medium">{cycle.name}</p>
+              <Card key={cycle.id}>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-semibold text-primary">{cycle.name}</p>
                   <form action={deleteCycle}>
                     <input type="hidden" name="id" value={cycle.id} />
-                    <button type="submit" className="text-sm text-red-600 hover:underline">
+                    <Button type="submit" variant="danger-link" className="text-xs">
                       Eliminar ciclo
-                    </button>
+                    </Button>
                   </form>
                 </div>
 
                 <ul className="mb-3 flex flex-wrap gap-2">
                   {cycleClasses?.map((cls) => (
-                    <li key={cls.id} className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm">
-                      {cls.name}
-                      <form action={deleteClass}>
+                    <li key={cls.id}>
+                      <form action={deleteClass} className="inline-flex items-center gap-1 rounded-full bg-surface-bg py-1 pl-3 pr-1 text-sm text-primary">
                         <input type="hidden" name="id" value={cls.id} />
-                        <button type="submit" className="text-red-600 hover:underline">
-                          ×
+                        {cls.name}
+                        <button type="submit" aria-label={`Eliminar turma ${cls.name}`} className="rounded-full p-1 text-secondary hover:bg-subtle hover:text-red-600">
+                          <X size={12} aria-hidden="true" />
                         </button>
                       </form>
                     </li>
                   ))}
-                  {(!cycleClasses || cycleClasses.length === 0) && <li className="text-sm text-gray-500">Sem turmas ainda.</li>}
+                  {(!cycleClasses || cycleClasses.length === 0) && <Badge>Sem turmas ainda</Badge>}
                 </ul>
 
                 <form action={createClass} className="flex gap-2">
                   <input type="hidden" name="school_id" value={selectedSchoolId} />
                   <input type="hidden" name="cycle_id" value={cycle.id} />
-                  <input name="ano" required placeholder="Ano (ex: 5 ou EPE)" className="w-32 rounded border border-gray-300 px-2 py-1 text-sm" />
-                  <input name="letra" required maxLength={1} placeholder="Letra" className="w-16 rounded border border-gray-300 px-2 py-1 text-sm" />
-                  <button type="submit" className="text-sm text-blue-600 hover:underline">
+                  <Input name="ano" required placeholder="Ano (ex: 5 ou EPE)" className="w-36" />
+                  <Input name="letra" required maxLength={1} placeholder="Letra" className="w-16" />
+                  <Button type="submit" variant="ghost">
+                    <Plus size={14} aria-hidden="true" />
                     Adicionar turma
-                  </button>
+                  </Button>
                 </form>
-              </div>
+              </Card>
             );
           })}
         </div>

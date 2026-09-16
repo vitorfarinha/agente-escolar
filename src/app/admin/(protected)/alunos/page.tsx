@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
+import { Plus, Trash2 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Button, Card, Input, PageHeader, Select } from "@/components/admin/ui";
 
 /** Deriva year_group_id/cycle_id a partir da turma escolhida, para não deixar estes três campos desalinhados entre si. */
 async function resolveClassLineage(supabase: SupabaseClient, classId: string) {
@@ -70,66 +72,63 @@ export default async function AlunosPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Alunos</h1>
+      <PageHeader title="Alunos" />
 
-      <form action={createStudent} className="mb-6 flex flex-wrap gap-2">
-        <select name="school_id" required className="rounded border border-gray-300 px-3 py-2 text-sm">
-          <option value="">Escola</option>
-          {schools?.map((school) => (
-            <option key={school.id} value={school.id}>
-              {school.name}
-            </option>
-          ))}
-        </select>
-        <input name="first_name" required placeholder="Nome próprio" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <input name="last_name" required placeholder="Apelido" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <select name="class_id" className="rounded border border-gray-300 px-3 py-2 text-sm">
-          <option value="">Turma</option>
-          {classes?.map((cls) => (
-            <option key={cls.id} value={cls.id}>
-              {cls.name}
-            </option>
-          ))}
-        </select>
-        <button type="submit" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
-          Adicionar
-        </button>
-      </form>
+      <Card className="mb-6">
+        <form action={createStudent} className="flex flex-wrap gap-2">
+          <Select name="school_id" required className="min-w-40">
+            <option value="">Escola</option>
+            {schools?.map((school) => (
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
+            ))}
+          </Select>
+          <Input name="first_name" required placeholder="Nome próprio" className="min-w-36" />
+          <Input name="last_name" required placeholder="Apelido" className="min-w-36" />
+          <Select name="class_id" className="min-w-32">
+            <option value="">Turma</option>
+            {classes?.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.name}
+              </option>
+            ))}
+          </Select>
+          <Button type="submit">
+            <Plus size={16} aria-hidden="true" />
+            Adicionar
+          </Button>
+        </form>
+      </Card>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {students?.map((student) => (
-            <tr key={student.id} className="border-t border-gray-200">
-              <td className="py-2">
-                <form action={updateStudent} className="flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="id" value={student.id} />
-                  <input name="first_name" defaultValue={student.first_name} className="w-28 rounded border border-gray-300 px-2 py-1" />
-                  <input name="last_name" defaultValue={student.last_name} className="w-28 rounded border border-gray-300 px-2 py-1" />
-                  <select name="class_id" defaultValue={student.class_id ?? ""} className="rounded border border-gray-300 px-2 py-1">
-                    <option value="">Sem turma</option>
-                    {classes?.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" className="text-blue-600 hover:underline">
-                    Guardar
-                  </button>
-                </form>
-              </td>
-              <td className="py-2 text-right">
-                <form action={deleteStudent}>
-                  <input type="hidden" name="id" value={student.id} />
-                  <button type="submit" className="text-red-600 hover:underline">
-                    Eliminar
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Card className="flex flex-col gap-3">
+        {(!students || students.length === 0) && <p className="text-sm text-secondary">Ainda não há alunos criados.</p>}
+        {students?.map((student) => (
+          <form
+            key={student.id}
+            action={updateStudent}
+            className="flex flex-wrap items-center gap-2 border-b border-subtle pb-3 last:border-0 last:pb-0"
+          >
+            <input type="hidden" name="id" value={student.id} />
+            <Input name="first_name" defaultValue={student.first_name} className="w-32" />
+            <Input name="last_name" defaultValue={student.last_name} className="w-32" />
+            <Select name="class_id" defaultValue={student.class_id ?? ""} className="min-w-32">
+              <option value="">Sem turma</option>
+              {classes?.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </Select>
+            <Button type="submit" variant="link">
+              Guardar
+            </Button>
+            <Button type="submit" formAction={deleteStudent} variant="icon-danger" aria-label="Eliminar aluno">
+              <Trash2 size={16} aria-hidden="true" />
+            </Button>
+          </form>
+        ))}
+      </Card>
     </div>
   );
 }

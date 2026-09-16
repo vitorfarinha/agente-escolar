@@ -1,5 +1,7 @@
 import { revalidatePath } from "next/cache";
+import { Plus, Trash2 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { Button, Card, Input, PageHeader } from "@/components/admin/ui";
 
 async function createSchool(formData: FormData) {
   "use server";
@@ -37,40 +39,33 @@ export default async function EscolasPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Escolas</h1>
+      <PageHeader title="Escolas" />
 
-      <form action={createSchool} className="mb-6 flex gap-2">
-        <input name="name" required placeholder="Nome da escola" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <button type="submit" className="rounded bg-gray-900 px-4 py-2 text-sm text-white">
-          Adicionar
-        </button>
-      </form>
+      <Card className="mb-6">
+        <form action={createSchool} className="flex gap-2">
+          <Input name="name" required placeholder="Nome da escola" className="flex-1" />
+          <Button type="submit">
+            <Plus size={16} aria-hidden="true" />
+            Adicionar
+          </Button>
+        </form>
+      </Card>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {schools?.map((school) => (
-            <tr key={school.id} className="border-t border-gray-200">
-              <td className="py-2">
-                <form action={updateSchool} className="flex items-center gap-2">
-                  <input type="hidden" name="id" value={school.id} />
-                  <input name="name" defaultValue={school.name} className="rounded border border-gray-300 px-2 py-1" />
-                  <button type="submit" className="text-blue-600 hover:underline">
-                    Guardar
-                  </button>
-                </form>
-              </td>
-              <td className="py-2 text-right">
-                <form action={deleteSchool}>
-                  <input type="hidden" name="id" value={school.id} />
-                  <button type="submit" className="text-red-600 hover:underline">
-                    Eliminar
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Card className="flex flex-col gap-3">
+        {(!schools || schools.length === 0) && <p className="text-sm text-secondary">Ainda não há escolas criadas.</p>}
+        {schools?.map((school) => (
+          <form key={school.id} action={updateSchool} className="flex items-center gap-2 border-b border-subtle pb-3 last:border-0 last:pb-0">
+            <input type="hidden" name="id" value={school.id} />
+            <Input name="name" defaultValue={school.name} className="flex-1" />
+            <Button type="submit" variant="link">
+              Guardar
+            </Button>
+            <Button type="submit" formAction={deleteSchool} variant="icon-danger" aria-label="Eliminar escola">
+              <Trash2 size={16} aria-hidden="true" />
+            </Button>
+          </form>
+        ))}
+      </Card>
     </div>
   );
 }

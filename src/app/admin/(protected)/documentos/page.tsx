@@ -1,8 +1,10 @@
 import { revalidatePath } from "next/cache";
+import { Plus, Trash2, X } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { extractText } from "@/lib/documents/extract-text";
 import { chunkText } from "@/lib/documents/chunk-text";
 import { embedChunks } from "@/lib/documents/embed-chunks";
+import { Badge, Button, Card, Input, PageHeader, Select, Textarea } from "@/components/admin/ui";
 
 async function reembedDocument(documentId: string, rawText: string) {
   const supabase = await createServerSupabaseClient();
@@ -145,62 +147,59 @@ export default async function DocumentosPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Documentos</h1>
+      <PageHeader title="Documentos" />
 
-      <form action={uploadDocument} className="mb-8 flex flex-col gap-2 rounded border border-gray-200 p-4" encType="multipart/form-data">
-        <p className="font-medium">Adicionar documento</p>
-        <div className="flex flex-wrap gap-2">
-          <select name="school_id" required className="rounded border border-gray-300 px-3 py-2 text-sm">
-            <option value="">Escola</option>
-            {schools?.map((school) => (
-              <option key={school.id} value={school.id}>
-                {school.name}
-              </option>
-            ))}
-          </select>
-          <input name="title" required placeholder="Título" className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        </div>
-        <label className="text-sm text-gray-600">Ficheiro (PDF) ou texto colado abaixo</label>
-        <input name="file" type="file" accept="application/pdf" className="text-sm" />
-        <textarea name="text" placeholder="...ou cola aqui o texto diretamente" rows={3} className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        <button type="submit" className="w-fit rounded bg-gray-900 px-4 py-2 text-sm text-white">
-          Carregar
-        </button>
-      </form>
+      <Card className="mb-6">
+        <p className="mb-3 font-semibold text-primary">Adicionar documento</p>
+        <form action={uploadDocument} className="flex flex-col gap-2" encType="multipart/form-data">
+          <div className="flex flex-wrap gap-2">
+            <Select name="school_id" required className="min-w-40">
+              <option value="">Escola</option>
+              {schools?.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.name}
+                </option>
+              ))}
+            </Select>
+            <Input name="title" required placeholder="Título" className="min-w-40 flex-1" />
+          </div>
+          <label className="text-sm text-secondary">Ficheiro (PDF) ou texto colado abaixo</label>
+          <input name="file" type="file" accept="application/pdf" className="text-sm text-secondary" />
+          <Textarea name="text" placeholder="...ou cola aqui o texto diretamente" rows={3} />
+          <Button type="submit" className="w-fit">
+            <Plus size={16} aria-hidden="true" />
+            Carregar
+          </Button>
+        </form>
+      </Card>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {documents?.map((document) => {
           const docScopes = scopes?.filter((s) => s.document_id === document.id) ?? [];
           const hasChunks = chunkCounts?.some((c) => c.document_id === document.id) ?? false;
           const hasText = Boolean(document.raw_text?.trim());
 
           return (
-            <div key={document.id} className="rounded border border-gray-200 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="font-medium">{document.title}</p>
-                <div className="flex gap-2 text-xs">
-                  <span className={`rounded px-2 py-1 ${hasText ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                    {hasText ? "extraído" : "sem texto"}
-                  </span>
-                  <span className={`rounded px-2 py-1 ${hasChunks ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                    {hasChunks ? "com embeddings" : "sem embeddings"}
-                  </span>
-                  <span className={`rounded px-2 py-1 ${docScopes.length > 0 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                    {docScopes.length > 0 ? "etiquetado" : "sem âmbito"}
-                  </span>
+            <Card key={document.id}>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-semibold text-primary">{document.title}</p>
+                <div className="flex gap-2">
+                  <Badge tone={hasText ? "success" : "neutral"}>{hasText ? "extraído" : "sem texto"}</Badge>
+                  <Badge tone={hasChunks ? "success" : "neutral"}>{hasChunks ? "com embeddings" : "sem embeddings"}</Badge>
+                  <Badge tone={docScopes.length > 0 ? "success" : "neutral"}>{docScopes.length > 0 ? "etiquetado" : "sem âmbito"}</Badge>
                 </div>
               </div>
 
               <div className="mb-3">
-                <p className="mb-1 text-sm font-medium text-gray-700">Âmbitos</p>
+                <p className="mb-2 text-sm font-medium text-primary">Âmbitos</p>
                 <ul className="mb-2 flex flex-wrap gap-2">
                   {docScopes.map((scope) => (
-                    <li key={scope.id} className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs">
-                      {scopeLabel(scope.scope_type, scope.scope_id)}
-                      <form action={removeScope}>
+                    <li key={scope.id}>
+                      <form action={removeScope} className="inline-flex items-center gap-1 rounded-full bg-surface-bg py-1 pl-3 pr-1 text-xs text-primary">
                         <input type="hidden" name="id" value={scope.id} />
-                        <button type="submit" className="text-red-600 hover:underline">
-                          ×
+                        {scopeLabel(scope.scope_type, scope.scope_id)}
+                        <button type="submit" aria-label="Remover âmbito" className="rounded-full p-1 text-secondary hover:bg-subtle hover:text-red-600">
+                          <X size={12} aria-hidden="true" />
                         </button>
                       </form>
                     </li>
@@ -208,7 +207,7 @@ export default async function DocumentosPage() {
                 </ul>
                 <form action={addScope} className="flex gap-2">
                   <input type="hidden" name="document_id" value={document.id} />
-                  <select name="scope" required className="rounded border border-gray-300 px-2 py-1 text-sm">
+                  <Select name="scope" required className="flex-1">
                     <option value="geral:">Geral (toda a escola)</option>
                     <optgroup label="Ciclo">
                       {cycles?.map((c) => (
@@ -245,31 +244,32 @@ export default async function DocumentosPage() {
                         </option>
                       ))}
                     </optgroup>
-                  </select>
-                  <button type="submit" className="text-sm text-blue-600 hover:underline">
+                  </Select>
+                  <Button type="submit" variant="ghost">
                     Adicionar âmbito
-                  </button>
+                  </Button>
                 </form>
               </div>
 
               <details className="mb-3">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700">Texto extraído (editar e reprocessar)</summary>
+                <summary className="cursor-pointer text-sm font-medium text-primary">Texto extraído (editar e reprocessar)</summary>
                 <form action={updateDocumentText} className="mt-2 flex flex-col gap-2">
                   <input type="hidden" name="document_id" value={document.id} />
-                  <textarea name="raw_text" defaultValue={document.raw_text ?? ""} rows={8} className="rounded border border-gray-300 px-3 py-2 font-mono text-xs" />
-                  <button type="submit" className="w-fit rounded bg-gray-900 px-4 py-2 text-sm text-white">
+                  <Textarea name="raw_text" defaultValue={document.raw_text ?? ""} rows={8} className="font-mono text-xs" />
+                  <Button type="submit" variant="ghost" className="w-fit">
                     Guardar e reprocessar (re-chunk + re-embed)
-                  </button>
+                  </Button>
                 </form>
               </details>
 
               <form action={deleteDocument}>
                 <input type="hidden" name="document_id" value={document.id} />
-                <button type="submit" className="text-sm text-red-600 hover:underline">
+                <Button type="submit" variant="danger-link">
+                  <Trash2 size={14} aria-hidden="true" />
                   Eliminar documento
-                </button>
+                </Button>
               </form>
-            </div>
+            </Card>
           );
         })}
       </div>
