@@ -15,4 +15,8 @@ export type OutgoingMessage = {
   referencedDocumentIds: string[];
   /** id da mensagem do agente persistida em `messages` — ausente quando a conversa nem chega a ser gravada (ex: encarregado não identificado). */
   messageId?: string;
+  /** true quando uma nota foi guardada automaticamente em `family_notes` a
+   * partir desta mensagem — só usado pelo chat web para um indicador
+   * discreto; outros canais podem ignorar o campo. */
+  familyNoteSaved?: boolean;
 };

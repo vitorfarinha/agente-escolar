@@ -1,9 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Bell, ChevronDown } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { GuardianAvatar } from "./avatar";
+
+const GUARDIAN_NAV_LINKS = [
+  { href: "/chat", label: "Chat" },
+  { href: "/conhecimento", label: "Centro de Conhecimento" },
+] as const;
+
+function GuardianNav() {
+  const pathname = usePathname();
+  return (
+    <nav className="hidden items-center gap-1 sm:flex">
+      {GUARDIAN_NAV_LINKS.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+            pathname === link.href ? "bg-surface-bg text-primary" : "text-secondary hover:bg-surface-bg hover:text-primary"
+          }`}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
 
 export function ChatHeader({
   guardianName,
@@ -27,7 +53,10 @@ export function ChatHeader({
     <header className="relative z-20 flex items-center justify-between border-b border-subtle bg-surface-card px-4 py-3 shadow-sm sm:px-6">
       {anyOpen && <button aria-hidden="true" tabIndex={-1} onClick={closeAll} className="fixed inset-0 z-10 cursor-default" />}
 
-      <BrandLogo size="sm" />
+      <div className="flex items-center gap-4">
+        <BrandLogo size="sm" />
+        <GuardianNav />
+      </div>
 
       <div className="relative z-20 flex items-center gap-1.5 sm:gap-2.5">
         <div className="relative">
@@ -75,6 +104,14 @@ export function ChatHeader({
                 {guardianEmail && <p className="truncate text-xs text-muted">{guardianEmail}</p>}
               </div>
               <span aria-hidden="true" className="my-1 block h-px bg-subtle" />
+              <Link
+                href="/conhecimento"
+                role="menuitem"
+                onClick={closeAll}
+                className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-secondary transition hover:bg-surface-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-900 sm:hidden"
+              >
+                Centro de Conhecimento
+              </Link>
               <button
                 type="button"
                 role="menuitem"

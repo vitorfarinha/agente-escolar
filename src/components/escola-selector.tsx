@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Select, FieldLabel } from "@/components/admin/ui";
+import { Select, FieldLabel } from "@/components/ui";
 
 export function EscolaSelector({ schools, selectedId }: { schools: { id: string; name: string }[]; selectedId: string }) {
   const router = useRouter();

@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { NotebookPen } from "lucide-react";
 import { AssistantAvatar, GuardianAvatar } from "./avatar";
 import { MessageFeedback, type FeedbackType } from "./message-feedback";
 
@@ -8,6 +9,8 @@ export type ChatMessageData = {
   content: string;
   /** id real da linha em `messages` — só existe depois de persistida; necessário para o feedback. */
   messageId?: string;
+  /** true quando esta resposta gerou uma nota automática no Centro de Conhecimento. */
+  familyNoteSaved?: boolean;
 };
 
 /** Destaca factos-chave (**negrito**) que o assistente devolve no texto da resposta. */
@@ -47,6 +50,16 @@ export function ChatMessage({
         >
           {isUser ? message.content : renderFormattedContent(message.content)}
         </div>
+
+        {!isUser && message.familyNoteSaved && (
+          <a
+            href="/conhecimento"
+            className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+          >
+            <NotebookPen size={11} aria-hidden="true" />
+            Nota guardada · Centro de Conhecimento
+          </a>
+        )}
 
         {!isUser && message.messageId && onFeedback && (
           <MessageFeedback messageId={message.messageId} content={message.content} onFeedback={onFeedback} />

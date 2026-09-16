@@ -1,8 +1,11 @@
 import { createServiceClient } from "@/lib/supabase/service-client";
 import { resolveGuardian } from "./resolve-guardian";
 import { getGuardianScopes } from "./get-guardian-scopes";
+import { getGuardianChildren } from "./get-guardian-children";
+import { getActiveFamilyNotes } from "./get-active-family-notes";
 import { retrieveRelevantChunks } from "./retrieve-relevant-chunks";
 import { generateAnswer } from "./generate-answer";
+import { extractFamilyFact } from "./extract-family-fact";
 import type { IncomingMessage, OutgoingMessage } from "./types";
 
 /**
@@ -22,10 +25,30 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
     };
   }
 
-  const scopes = await getGuardianScopes(guardianId);
-  const chunks = await retrieveRelevantChunks(msg.text, scopes);
-  const answerText = await generateAnswer(msg.text, chunks);
+  const [scopes, children] = await Promise.all([getGuardianScopes(guardianId), getGuardianChildren(guardianId)]);
+  const [chunks, familyNotes] = await Promise.all([retrieveRelevantChunks(msg.text, scopes), getActiveFamilyNotes(guardianId, children)]);
   const referencedDocumentIds = [...new Set(chunks.map((chunk) => chunk.document_id))];
+
+  const [answerText, extractedFact] = await Promise.all([
+    generateAnswer(msg.text, chunks, familyNotes),
+    extractFamilyFact(msg.text, children, familyNotes).catch((error) => {
+      console.error("extractFamilyFact:", error instanceof Error ? error.message : error);
+      return null;
+    }),
+  ]);
+
+  let familyNoteSaved = false;
+  if (extractedFact) {
+    const { error: noteError } = await supabase.from("family_notes").insert({
+      guardian_id: guardianId,
+      student_id: extractedFact.student_id,
+      content: extractedFact.content,
+      event_date: extractedFact.event_date,
+      source: "auto",
+    });
+    if (noteError) console.error("family_notes insert:", noteError.message);
+    else familyNoteSaved = true;
+  }
 
   const { data: existingConversation } = await supabase
     .from("conversations")
@@ -66,5 +89,5 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
 
   const agentMessageId = insertedMessages?.find((message) => message.sender === "agent")?.id;
 
-  return { text: answerText, referencedDocumentIds, messageId: agentMessageId };
+  return { text: answerText, referencedDocumentIds, messageId: agentMessageId, familyNoteSaved };
 }

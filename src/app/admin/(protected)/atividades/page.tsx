@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { Plus, Trash2 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { Button, Card, Input, PageHeader, Select } from "@/components/admin/ui";
+import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 async function createActivity(formData: FormData) {
   "use server";

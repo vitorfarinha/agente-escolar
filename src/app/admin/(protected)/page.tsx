@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/admin/ui";
+import { PageHeader } from "@/components/ui";
 import { ADMIN_NAV_LINKS } from "@/components/admin/admin-nav";
 
 export default function AdminHomePage() {

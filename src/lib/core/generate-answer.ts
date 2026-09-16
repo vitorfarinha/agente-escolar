@@ -1,59 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { RetrievedChunk } from "./retrieve-relevant-chunks";
+import type { ActiveFamilyNote } from "./get-active-family-notes";
+import { currentDateTimeLabel } from "./school-time";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const MODEL = "claude-haiku-4-5-20251001";
-
-// Escolas-alvo são em Portugal — usa-se sempre este fuso para "hoje"/"amanhã",
-// independentemente de onde a função serverless está a correr (normalmente UTC).
-const SCHOOL_TIMEZONE = "Europe/Lisbon";
-
-const WEEKDAY_PT: Record<string, string> = {
-  Sunday: "domingo",
-  Monday: "segunda-feira",
-  Tuesday: "terça-feira",
-  Wednesday: "quarta-feira",
-  Thursday: "quinta-feira",
-  Friday: "sexta-feira",
-  Saturday: "sábado",
-};
-
-// Entre a meia-noite e as 6h, "amanhã" dito no sentido de "a manhã seguinte"
-// refere-se ao próprio dia (a manhã que se aproxima), não ao dia seguinte no
-// calendário — só depois das 6h é que "amanhã" volta a significar o dia a seguir.
-const EARLY_MORNING_CUTOFF_HOUR = 6;
-
-/** Data/hora atuais em Portugal + dia da semana em português, para o modelo
- * conseguir resolver referências relativas ("amanhã", "esta semana", "sexta-feira
- * que vem") contra horários/calendários presentes no contexto. Entre as 00:00 e
- * as 06:00, o cálculo de "amanhã" é feito aqui (não deixado ao modelo) e anotado
- * explicitamente, para não depender do modelo aplicar corretamente esta exceção. */
-function currentDateTimeLabel(): string {
-  const now = new Date();
-  const weekdayEn = new Intl.DateTimeFormat("en-US", { timeZone: SCHOOL_TIMEZONE, weekday: "long" }).format(now);
-  const date = new Intl.DateTimeFormat("en-CA", {
-    timeZone: SCHOOL_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-  const time = new Intl.DateTimeFormat("pt-PT", {
-    timeZone: SCHOOL_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(now);
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: SCHOOL_TIMEZONE, hour: "2-digit", hour12: false }).format(now));
-
-  const base = `${WEEKDAY_PT[weekdayEn] ?? weekdayEn}, ${date}, ${time}`;
-
-  if (hour < EARLY_MORNING_CUTOFF_HOUR) {
-    return `${base} (madrugada — antes das ${String(EARLY_MORNING_CUTOFF_HOUR).padStart(2, "0")}:00, por isso "amanhã" no sentido de "a manhã seguinte" refere-se a HOJE, ${date}, não ao dia seguinte no calendário)`;
-  }
-
-  return base;
-}
+export const MODEL = "claude-haiku-4-5-20251001";
 
 const SYSTEM_PROMPT = `És o assistente de informação escolar de uma escola. Respondes a perguntas de encarregados de educação com base nos factos presentes nos excertos de documentos fornecidos como contexto.
 
@@ -65,16 +17,19 @@ Regras:
 - "Nunca inventes informação" refere-se a factos que não constam do contexto (datas, valores, nomes) — não a impedir-te de fazer deduções lógicas simples sobre factos que constam do contexto.
 - Só digas que não tens informação suficiente se o contexto genuinamente não contiver os factos base necessários para responder ou deduzir a resposta.
 - No fim da resposta, cita a(s) fonte(s) usada(s) (ex: "Fonte: [título do documento]").
+- Além dos excertos de documentos escolares, o contexto pode incluir blocos "[Notas da família — nome]", fornecidos pelo próprio encarregado sobre o seu educando. São factos reais mas de origem diferente da escola — nunca os apresentes como comunicação oficial da escola nem como um documento.
+- Quando usares uma nota da família na resposta, cita-a como algo que o próprio encarregado partilhou (ex: "Fonte: nota que registaste sobre a Ana"), nunca com o formato "[Fonte N]" usado para documentos.
+- As notas da família apresentadas pertencem exclusivamente à pessoa que está a perguntar — nunca as generalizes a outros alunos, turmas, ou à escola em geral.
 - Responde sempre em português de Portugal.`;
 
-export async function generateAnswer(question: string, chunks: RetrievedChunk[]): Promise<string> {
-  if (chunks.length === 0) {
+export async function generateAnswer(question: string, chunks: RetrievedChunk[], familyNotes: ActiveFamilyNote[] = []): Promise<string> {
+  if (chunks.length === 0 && familyNotes.length === 0) {
     return "Não encontrei informação relevante nos documentos disponíveis para responder a esta pergunta. Pode reformular a pergunta ou contactar diretamente a escola.";
   }
 
-  const context = chunks
-    .map((chunk, index) => `[Fonte ${index + 1} — documento ${chunk.document_id}]\n${chunk.content}`)
-    .join("\n\n");
+  const documentContext = chunks.map((chunk, index) => `[Fonte ${index + 1} — documento ${chunk.document_id}]\n${chunk.content}`).join("\n\n");
+  const familyContext = familyNotes.map((note) => `[Notas da família — ${note.childName}]\n${note.content}`).join("\n\n");
+  const context = [documentContext, familyContext].filter(Boolean).join("\n\n");
 
   const message = await anthropic.messages.create({
     model: MODEL,

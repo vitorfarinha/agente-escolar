@@ -3,7 +3,7 @@ import { Plus, X } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EscolaSelector } from "@/components/escola-selector";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Badge, Button, Card, Input, PageHeader } from "@/components/admin/ui";
+import { Badge, Button, Card, Input, PageHeader } from "@/components/ui";
 
 /** "5" ou "5º" -> {label:"5º", isNumeric:true}; "EPE" -> {label:"EPE", isNumeric:false} */
 function normalizeAno(raw: string): { label: string; isNumeric: boolean } {

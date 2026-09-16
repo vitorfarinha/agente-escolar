@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { Plus, Trash2 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Button, Card, Input, PageHeader, Select } from "@/components/admin/ui";
+import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 
 /** Deriva year_group_id/cycle_id a partir da turma escolhida, para não deixar estes três campos desalinhados entre si. */
 async function resolveClassLineage(supabase: SupabaseClient, classId: string) {

@@ -5,7 +5,7 @@ import { extractText } from "@/lib/documents/extract-text";
 import { extractFromUrl } from "@/lib/documents/extract-url";
 import { chunkText } from "@/lib/documents/chunk-text";
 import { embedChunks } from "@/lib/documents/embed-chunks";
-import { Badge, Button, Card, Input, PageHeader, Select, Textarea } from "@/components/admin/ui";
+import { Badge, Button, Card, Input, PageHeader, Select, Textarea } from "@/components/ui";
 
 async function reembedDocument(documentId: string, rawText: string) {
   const supabase = await createServerSupabaseClient();

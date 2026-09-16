@@ -54,10 +54,16 @@ export function ChatClient({
 
       if (!response.ok) throw new Error("Falha ao enviar a mensagem.");
 
-      const outgoing: { text: string; messageId?: string } = await response.json();
+      const outgoing: { text: string; messageId?: string; familyNoteSaved?: boolean } = await response.json();
       setMessages((prev) => [
         ...prev,
-        { id: outgoing.messageId ?? `local-${Date.now()}-reply`, role: "assistant", content: outgoing.text, messageId: outgoing.messageId },
+        {
+          id: outgoing.messageId ?? `local-${Date.now()}-reply`,
+          role: "assistant",
+          content: outgoing.text,
+          messageId: outgoing.messageId,
+          familyNoteSaved: outgoing.familyNoteSaved,
+        },
       ]);
     } catch {
       setError("Não foi possível enviar a mensagem. Tenta novamente.");

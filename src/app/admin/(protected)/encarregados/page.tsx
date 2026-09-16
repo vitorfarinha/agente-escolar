@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { Plus, X } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EscolaSelector } from "@/components/escola-selector";
-import { Badge, Button, Card, FieldLabel, Input, PageHeader, Select } from "@/components/admin/ui";
+import { Badge, Button, Card, FieldLabel, Input, PageHeader, Select } from "@/components/ui";
 
 const CHANNELS = ["email", "whatsapp", "sms", "telegram", "webapp", "awl"] as const;
 

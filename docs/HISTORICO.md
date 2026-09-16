@@ -10,6 +10,72 @@ construir) e `docs/ENV.md` para variáveis de ambiente.
 
 ---
 
+## 2026-09-16 (3) — Centro de Conhecimento: RAG de duas fontes (School Sources + Parent Sources)
+
+Pedido do utilizador: além dos documentos da escola, deixar os
+encarregados adicionarem a sua própria informação sobre os educandos
+(ex: "hoje a minha filha tem ballet às 17h", "é alérgica a frutos
+secos"), com isolamento simétrico e estrito — a escola não pode ver nem
+editar isto, tal como o encarregado não pode ver/editar os documentos
+oficiais da escola.
+
+### Decisões (plano completo revisto e aprovado antes de codar)
+
+- **Captura híbrida**: extração automática de qualquer mensagem (corre no
+  núcleo, `handle-incoming-message.ts`, portanto funciona em qualquer
+  canal) + CRUD manual no Centro de Conhecimento (`/conhecimento`), que
+  serve de superfície de retificação para erros de extração.
+- **Isolamento estrutural**: `family_notes` não tem nenhuma policy de
+  admin — nem sequer de leitura. Confirmado por teste direto em SQL:
+  com `is_admin() = true`, `select count(*) from family_notes` devolve
+  0, e qualquer `insert`/`update`/`delete` é rejeitado pelo RLS.
+- **Validade temporal**: `event_date` opcional (`null` = facto
+  permanente). Notas com data passada deixam de entrar no contexto do
+  RAG mas continuam visíveis/editáveis no Centro de Conhecimento.
+- **Retrieval sem embeddings**: inclusão direta de todas as notas ativas
+  do(s) educando(s) do encarregado no prompt — volume esperado por
+  educando é pequeno, evita o risco de uma nota relevante ficar de fora
+  por um corte de pesquisa semântica.
+- Componentes UI partilhados (`Input`/`Button`/`Card`/...) movidos de
+  `src/components/admin/ui.tsx` para `src/components/ui.tsx` — uma
+  página do encarregado a importar de `admin/*` seria estruturalmente
+  enganador dado o isolamento que se está a reforçar.
+
+### Bug encontrado e corrigido durante a validação
+
+A extração devolvia sempre `null` mesmo com a mensagem a conter um facto
+claro. Causa: a validação `zod` do `student_id` usava `.uuid()`, que no
+zod v4 exige o formato RFC 4122 completo (dígito de versão em `[1-8]`,
+variante em `[89ab]`) — mas os ids de teste do `seed.sql`
+(`51111111-0000-0000-0000-000000000001`, etc.) não seguem esse formato,
+apesar de serem `uuid` válidos para o Postgres. Corrigido para
+`z.string().min(1)` — a verificação que realmente importa (o id
+pertence mesmo a um educando do encarregado) já vem a seguir
+(`isKnownChild`), tornando a validação de formato estrita redundante e,
+pior, uma fonte de falsos negativos.
+
+### Validação
+
+- **RLS (SQL direto, simulando papéis)**: `service_role` insere/lê
+  livremente; encarregado dono lê e edita só a sua nota; outro
+  encarregado vê 0 linhas e é bloqueado a escrever nas de outrem; admin
+  (`is_admin()=true`) vê 0 linhas e é bloqueado a escrever — a asserção
+  mais importante do plano, confirmada.
+- **Extração ponta-a-ponta (via `/api/dev/ask`, com chamadas reais a
+  Claude Haiku)**: mensagem clara com 1 educando → nota `auto` gravada
+  corretamente (conteúdo reescrito, `event_date` resolvido para hoje);
+  mensagem ambígua com 2 educandos ("um dos meus filhos...") → nada
+  gravado; mensagem com nome próprio ("o Bruno...") → resolve
+  corretamente ao educando certo, `event_date` resolvido para amanhã.
+- **Retrieval**: nota persistente (sem `event_date`) é recuperada e
+  citada corretamente como "nota que registaste", não como fonte
+  escolar; nota com `event_date` passada é corretamente excluída do
+  contexto (a resposta reporta não ter informação, como esperado).
+- `tsc`, `eslint` e `next build` limpos em todo o processo.
+- **Produção**: migração aplicada a `motorcfjbhniqalunawd` via `apply_migration`; `get_advisors` sem novos avisos; confirmado diretamente (`pg_policies`) que `family_notes` tem exatamente uma política (`guardian manages own family_notes`, `ALL`) — nenhuma política de admin, tal como em local.
+
+---
+
 ## 2026-09-16 (2) — Ingestão de páginas web como fonte de conhecimento
 
 Pedido do utilizador: além do RAG sobre documentos (PDF/email), poder

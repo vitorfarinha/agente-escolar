@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { Badge, Card, PageHeader } from "@/components/admin/ui";
+import { Badge, Card, PageHeader } from "@/components/ui";
 
 export default async function LembretesPage() {
   const supabase = await createServerSupabaseClient();
