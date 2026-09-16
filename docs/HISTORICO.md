@@ -10,6 +10,72 @@ construir) e `docs/ENV.md` para variáveis de ambiente.
 
 ---
 
+## 2026-09-16 (6) — Bug real em produção: retrieval vetorial perdia termos exatos
+
+Reportado pelo utilizador: turma 2ºC, aluna Madalena. Pergunta "quando é
+que a Madalena tem performance" (disciplina "Performance" no horário da
+turma) respondeu que não havia informação suficiente — apesar de o chat
+conseguir reproduzir o horário completo quando pedido diretamente. O
+utilizador notou ainda que a resposta parecia ter interpretado
+"performance" como "avaliação de desempenho da aluna", não como o nome
+da disciplina.
+
+### Diagnóstico (dados reais de produção)
+
+- `generate-answer.ts` não tinha culpa: testado isoladamente com os 2
+  chunks reais do documento "Horário" como contexto, o Claude Haiku
+  respondeu corretamente, citando terça e quinta-feira.
+- O problema estava um passo antes — `retrieveRelevantChunks`/
+  `match_document_chunks` (pesquisa puramente vetorial, top-5 por
+  distância de cosseno). Gerado o embedding real da pergunta e ordenados
+  os 21 chunks elegíveis do encarregado (scopes `geral` + turma 2ºC): os
+  2 chunks do "Horário" ficaram em 9º/10º lugar — fora do top-5 — atrás
+  de **todos** os chunks do "Calendário ano lectivo", que é topicamente
+  mais próximo da ideia genérica de "quando"/datas do que o horário em
+  si, apesar de não conter a resposta. O núcleo nunca chegou a enviar o
+  chunk certo ao Claude.
+- Confirma o que já se tinha discutido nesta sessão: a fronteira de
+  retrieval (`retrieveRelevantChunks` → RPC `match_document_chunks`) está
+  bem isolada, permitindo trocar a estratégia sem tocar no resto do
+  núcleo.
+
+### Correção — pesquisa híbrida (vetor + full-text)
+
+Migração `supabase/migrations/20260916190000_hybrid_match_document_chunks.sql`
+reescreve `match_document_chunks` para combinar:
+- top-N por similaridade vetorial (como antes);
+- + chunks com correspondência textual literal (`to_tsvector('portuguese', content) @@ to_tsquery(...)`) contra os termos da pergunta.
+
+Duas decisões importantes, ambas descobertas por teste direto antes de
+aplicar em produção:
+- **OR entre termos, não AND.** A primeira versão usou
+  `websearch_to_tsquery`, que junta todos os termos com `&` — uma
+  pergunta em linguagem natural raramente tem todas as palavras
+  literalmente no chunk certo (ex: "Madalena" não aparece no horário da
+  turma, só "Performance" aparece). Corrigido para construir uma query
+  `|` (OR) a partir dos lexemas da pergunta.
+- **Filtrar lexemas com menos de 4 carateres.** Sem isto, palavras curtas
+  que sobrevivem ao dicionário `portuguese` como não-stopword (ex: "é")
+  geravam falsos positivos em quase todo o corpus.
+- `retrieveRelevantChunks` passa agora o texto da pergunta (`query_text`)
+  ao RPC, além do embedding.
+
+### Validação
+
+- Teste sintético local (`supabase db reset` + `psql` direto): chunk A
+  vetorialmente próximo mas irrelevante vs. chunk B vetorialmente
+  distante mas com a palavra-chave — sem `query_text` só o A aparece; com
+  `query_text` a bater na palavra-chave, A e B aparecem os dois.
+- Reproduzido o caso real: com o embedding real da pergunta e os scopes
+  reais da guardiã, a chamada a `match_document_chunks` em produção
+  (`apply_migration`, sem tocar no dashboard) passou a incluir os 2
+  chunks do "Horário" no resultado (antes ausentes do top-5).
+- `pnpm build`/`pnpm lint` limpos.
+- Nenhuma mensagem de teste foi enviada à conversa real da família — toda
+  a validação foi feita com queries SQL diretas (leitura + `apply_migration`), sem inserir linhas em `conversations`/`messages`.
+
+---
+
 ## 2026-09-16 (5) — Fase 7: stubs de preparação (WhatsApp + endpoints `/api/v1/*`)
 
 Avanço da Fase 7 do `PLANO.md`, cuja auditoria de conformidade (sessão do

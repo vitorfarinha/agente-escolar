@@ -29,6 +29,7 @@ export async function retrieveRelevantChunks(
     query_embedding: queryEmbedding,
     guardian_scopes: scopes,
     match_count: matchCount,
+    query_text: question,
   });
 
   if (error) throw new Error(`Falha na pesquisa de documentos: ${error.message}`);
