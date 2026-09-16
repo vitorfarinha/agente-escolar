@@ -214,9 +214,14 @@ create table admin_users (
 
 ## 4. Fluxo de ingestão de documentos
 
-1. PDF/email chega (upload manual no admin, ou webhook do Resend).
+> **Extensão pós-MVP (2026-09-16):** além de PDF/email/texto colado, o admin
+> pode ingerir uma página web como documento (`documents.source_channel =
+> 'url'`, texto extraído com `cheerio`). É um snapshot único — sem re-fetch
+> periódico se a página mudar. Ver `docs/HISTORICO.md` para o detalhe.
+
+1. PDF/email/URL chega (upload manual no admin, ou webhook do Resend).
 2. Guardado em Supabase Storage; metadados criados em `documents`.
-3. Extração de texto (PDF → `pdf-parse`; email → corpo + anexos).
+3. Extração de texto (PDF → `pdf-parse`; email → corpo + anexos; URL → HTML limpo com `cheerio`).
 4. Chunking do texto (~500 tokens por chunk, com overlap).
 5. Embeddings gerados (OpenAI `text-embedding-3-small`) e guardados em `document_chunks`.
 6. **Etiquetagem de âmbito** (`document_scopes`) — no MVP, feita manualmente no admin UI (escolher geral/turma/atividade/etc.); mais tarde pode ser sugerida automaticamente por IA.

@@ -10,6 +10,41 @@ construir) e `docs/ENV.md` para variáveis de ambiente.
 
 ---
 
+## 2026-09-16 (2) — Ingestão de páginas web como fonte de conhecimento
+
+Pedido do utilizador: além do RAG sobre documentos (PDF/email), poder
+apontar o assistente a websites/páginas específicas.
+
+- **Decisão de âmbito:** versão simples primeiro — ingestão manual via
+  Admin UI como snapshot único (tal como um PDF), sem re-fetch periódico.
+  Se a página de origem mudar, o documento em `documents` não atualiza
+  sozinho; é preciso reingerir manualmente. Re-fetch agendado (cron) fica
+  para mais tarde, se vier a ser necessário.
+- **Implementação:** `src/lib/documents/extract-url.ts` — faz fetch do
+  URL (timeout de 15s, só http/https) e usa `cheerio` para remover
+  `script/style/nav/header/footer/iframe/svg` e extrair o texto do
+  `<body>`. Entra na mesma pipeline de sempre (`chunkText` →
+  `embedChunks` → `document_chunks`), sem tocar em RAG/RLS/schema de
+  âmbitos — um documento vindo de URL é etiquetado e pesquisado
+  exatamente como um PDF.
+- **Schema:** migração
+  `supabase/migrations/20260916150000_add_url_document_source.sql` —
+  adiciona `'url'` ao `check` de `documents.source_channel` e uma coluna
+  `source_url text` (mostrada como link na lista de documentos do admin).
+- **Limitação conhecida:** a extração usa `cheerio` com `.text()` simples
+  sobre o `<body>` (não um algoritmo de "reader mode" como o
+  `@mozilla/readability`) — em HTML muito compacto/minificado, texto de
+  elementos de bloco adjacentes pode colar sem espaço/quebra de linha
+  entre eles. Não impede a extração, mas pode exigir revisão manual do
+  texto extraído (o admin já tem essa opção — "editar e reprocessar" —
+  para documentos vindos de qualquer fonte).
+- Validado: teste isolado da lógica `cheerio` (remoção correta de
+  nav/header/footer/script) e teste da função real `extractFromUrl`
+  contra um servidor HTTP local; migração aplicada e testada em local
+  (`supabase db reset`) antes de aplicar à produção via `apply_migration`.
+
+---
+
 ## 2026-09-16 — Auditoria de conformidade com o PLANO.md + correção de segurança em produção
 
 ### Auditoria de fases (Fases 0–8)

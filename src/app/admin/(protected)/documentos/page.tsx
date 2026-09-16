@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { Plus, Trash2, X } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { extractText } from "@/lib/documents/extract-text";
+import { extractFromUrl } from "@/lib/documents/extract-url";
 import { chunkText } from "@/lib/documents/chunk-text";
 import { embedChunks } from "@/lib/documents/embed-chunks";
 import { Badge, Button, Card, Input, PageHeader, Select, Textarea } from "@/components/admin/ui";
@@ -33,19 +34,35 @@ async function uploadDocument(formData: FormData) {
   const school_id = String(formData.get("school_id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const text = String(formData.get("text") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
   const file = formData.get("file") as File | null;
   if (!school_id || !title) return;
-  if (!text && (!file || file.size === 0)) return;
+  if (!text && !url && (!file || file.size === 0)) return;
 
-  const rawText = text || (await extractText({ buffer: Buffer.from(await file!.arrayBuffer()), mimeType: file!.type }));
+  let rawText: string;
+  let source_channel: "upload" | "url" = "upload";
+  if (text) {
+    rawText = text;
+  } else if (url) {
+    try {
+      rawText = (await extractFromUrl(url)).text;
+    } catch (error) {
+      console.error("uploadDocument (url):", error instanceof Error ? error.message : error);
+      return;
+    }
+    source_channel = "url";
+  } else {
+    rawText = await extractText({ buffer: Buffer.from(await file!.arrayBuffer()), mimeType: file!.type });
+  }
 
   const { data: document, error: documentError } = await supabase
     .from("documents")
     .insert({
       school_id,
       title,
-      source_channel: "upload",
-      original_filename: file?.name ?? null,
+      source_channel,
+      original_filename: source_channel === "upload" ? (file?.name ?? null) : null,
+      source_url: source_channel === "url" ? url : null,
       raw_text: rawText,
     })
     .select()
@@ -163,8 +180,9 @@ export default async function DocumentosPage() {
             </Select>
             <Input name="title" required placeholder="Título" className="min-w-40 flex-1" />
           </div>
-          <label className="text-sm text-secondary">Ficheiro (PDF) ou texto colado abaixo</label>
+          <label className="text-sm text-secondary">Ficheiro (PDF), URL de uma página, ou texto colado abaixo</label>
           <input name="file" type="file" accept="application/pdf" className="text-sm text-secondary" />
+          <Input name="url" type="url" placeholder="...ou cola aqui o URL de uma página (ex: https://escola.pt/circular)" />
           <Textarea name="text" placeholder="...ou cola aqui o texto diretamente" rows={3} />
           <Button type="submit" className="w-fit">
             <Plus size={16} aria-hidden="true" />
@@ -182,7 +200,16 @@ export default async function DocumentosPage() {
           return (
             <Card key={document.id}>
               <div className="mb-3 flex items-center justify-between">
-                <p className="font-semibold text-primary">{document.title}</p>
+                <div>
+                  <p className="font-semibold text-primary">{document.title}</p>
+                  {document.source_url ? (
+                    <a href={document.source_url} target="_blank" rel="noreferrer" className="text-xs text-brand-900 hover:underline">
+                      {document.source_url}
+                    </a>
+                  ) : document.original_filename ? (
+                    <p className="text-xs text-secondary">{document.original_filename}</p>
+                  ) : null}
+                </div>
                 <div className="flex gap-2">
                   <Badge tone={hasText ? "success" : "neutral"}>{hasText ? "extraído" : "sem texto"}</Badge>
                   <Badge tone={hasChunks ? "success" : "neutral"}>{hasChunks ? "com embeddings" : "sem embeddings"}</Badge>
