@@ -2,18 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Bell, FileText, Home, Layers, School, UserRound, Users } from "lucide-react";
-
-export const ADMIN_NAV_LINKS = [
-  { href: "/admin", label: "Início", icon: Home },
-  { href: "/admin/escolas", label: "Escolas", icon: School },
-  { href: "/admin/turmas", label: "Turmas", icon: Layers },
-  { href: "/admin/atividades", label: "Atividades", icon: Activity },
-  { href: "/admin/alunos", label: "Alunos", icon: UserRound },
-  { href: "/admin/encarregados", label: "Encarregados", icon: Users },
-  { href: "/admin/documentos", label: "Documentos", icon: FileText },
-  { href: "/admin/lembretes", label: "Lembretes", icon: Bell },
-] as const;
+import { ADMIN_NAV_LINKS } from "./admin-nav-links";
 
 /** Lista de links pura, reaproveitada pela sidebar fixa (desktop) e pelo
  * menu em drawer (mobile) — só muda o contentor à volta. */

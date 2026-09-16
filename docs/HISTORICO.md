@@ -10,6 +10,51 @@ construir) e `docs/ENV.md` para variáveis de ambiente.
 
 ---
 
+## 2026-09-16 (8) — Bug real em produção: `/admin` dava "página não encontrada" após login
+
+Reportado pelo utilizador: login em `/admin/login` funcionava (sessão
+criada no Supabase, confirmado por SQL — `last_sign_in_at` atualizado),
+mas a navegação a seguir para `/admin` mostrava "página não encontrada".
+O utilizador confirmou com um browser novo/histórico limpo, afastando a
+teoria inicial (bundle antigo em cache) — e trouxe o digest do erro
+(`ERROR 2486455686`) que resolveu tudo.
+
+### Diagnóstico
+
+- `get_runtime_errors` (Vercel) com esse digest: `TypeError:
+  e.ADMIN_NAV_LINKS.filter is not a function`, na rota `/admin` — não era
+  um 404 real, era um erro de servidor a mostrar a página genérica de
+  erro (o utilizador descreveu-a como "página não encontrada").
+- Causa: `ADMIN_NAV_LINKS` estava definido em `admin-nav.tsx`, um módulo
+  `"use client"`. `(protected)/page.tsx` é um Server Component e
+  importava essa constante diretamente para lhe chamar `.filter(...)`.
+  Um Server Component que importa um export não-componente de um módulo
+  `"use client"` recebe, em produção, uma referência de cliente em vez
+  do valor real — daí `.filter` não existir em runtime no servidor. Isto
+  não tinha nada a ver com as mudanças desta sessão (WhatsApp, retrieval
+  híbrido); é uma regressão anterior (Admin UI redesign, `88737c0`) que
+  só agora foi exercitada a sério.
+
+### Correção
+
+- Novo ficheiro `src/components/admin/admin-nav-links.ts` — dados puros,
+  sem `"use client"` — com o array `ADMIN_NAV_LINKS`.
+- `admin-nav.tsx` (client) e `(protected)/page.tsx` (server) passam
+  ambos a importar do novo ficheiro partilhado, em vez de o Server
+  Component importar de um módulo de cliente.
+
+### Validação
+
+- `pnpm build`/`pnpm lint` limpos.
+- Confirmado ao nível do bundle compilado (`.next/server/chunks/ssr/...`):
+  antes só existia a lista no bundle do cliente; agora o array está
+  inline no mesmo chunk do servidor que faz `u.filter(...)` — a chamada
+  opera sobre o array real, não uma referência de cliente. Sem extensão
+  do browser disponível nesta sessão para clicar no fluxo todo; a
+  verificação ficou ao nível do bundle, que é onde o bug realmente vivia.
+
+---
+
 ## 2026-09-16 (7) — Ativação do canal WhatsApp (webhook real)
 
 O utilizador já tinha app da Meta criada (WhatsApp Business, número de

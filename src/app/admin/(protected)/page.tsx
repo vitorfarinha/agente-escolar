@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui";
-import { ADMIN_NAV_LINKS } from "@/components/admin/admin-nav";
+import { ADMIN_NAV_LINKS } from "@/components/admin/admin-nav-links";
 
 export default function AdminHomePage() {
   const shortcuts = ADMIN_NAV_LINKS.filter((link) => link.href !== "/admin");
