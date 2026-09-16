@@ -5,6 +5,13 @@ import { extractText } from "@/lib/documents/extract-text";
 import { chunkText } from "@/lib/documents/chunk-text";
 import { embedChunks } from "@/lib/documents/embed-chunks";
 
+/**
+ * Endpoint público de ingestão para o Awl (Fase 7 do PLANO.md, secção 6.5).
+ * Reaproveita a mesma pipeline de ingestão do Admin UI (extração →
+ * chunking → embeddings); não faz etiquetagem de âmbito
+ * (`document_scopes`) — isso continua a ser feito manualmente no Admin UI
+ * após a ingestão.
+ */
 const ingestSchema = z
   .object({
     school_id: z.guid(),

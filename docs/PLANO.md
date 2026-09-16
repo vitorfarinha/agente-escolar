@@ -312,7 +312,7 @@ create table admin_users (
 27. Página `/chat` — interface simples de pergunta/resposta ligada ao núcleo (Fase 3), usando o `auth.uid()` da sessão para resolver o encarregado
 28. Histórico de conversa visível na mesma página
 
-### Fase 7 — Stubs de preparação (sem ativar ainda) ⏳
+### Fase 7 — Stubs de preparação (sem ativar ainda) ✅
 29. Ficheiro `channel-adapters/whatsapp.ts` com a função de tradução `IncomingMessage`/`OutgoingMessage` e um comentário `// TODO: ligar à Meta Cloud API quando pronto`
 30. Endpoints `POST /api/v1/query` e `POST /api/v1/documents` protegidos por `INTERNAL_API_KEY`, já a chamar o núcleo/pipeline existentes — prontos a ser consumidos pelo Awl
 

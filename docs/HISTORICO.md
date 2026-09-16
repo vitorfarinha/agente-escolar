@@ -10,6 +10,49 @@ construir) e `docs/ENV.md` para variáveis de ambiente.
 
 ---
 
+## 2026-09-16 (5) — Fase 7: stubs de preparação (WhatsApp + endpoints `/api/v1/*`)
+
+Avanço da Fase 7 do `PLANO.md`, cuja auditoria de conformidade (sessão do
+mesmo dia) tinha deixado uma decisão pendente sobre o path do endpoint de
+ingestão.
+
+- **`src/lib/channel-adapters/whatsapp.ts`** — adaptador stub, mesmo
+  padrão do `email.ts`: `whatsappToIncomingMessage` (payload mínimo de
+  webhook da Meta Cloud API → `IncomingMessage`) e
+  `outgoingMessageToWhatsappReply` (`OutgoingMessage` → corpo do pedido
+  de envio da Cloud API). Só tradução de formato, sem chamada de rede
+  real — `TODO` explícito no ficheiro a apontar o que falta (webhook de
+  receção + chamada de envio) quando o WhatsApp for ativado. Nenhuma
+  mudança necessária em `resolve-guardian.ts`/schema — `channel_identities`
+  já suporta `whatsapp`.
+- **`POST /api/v1/query`** (novo) — recebe `{ channel, identifier, text }`
+  validado com `zod`, protegido por `INTERNAL_API_KEY`, chama
+  `handleIncomingMessage` diretamente. É o endpoint que o Awl vai usar
+  para perguntar em nome de um encarregado já registado.
+- **Decisão sobre o path de ingestão:** `/api/documents/ingest` não tinha
+  nenhum consumidor real (o Admin UI faz a ingestão diretamente via
+  Supabase client, não por HTTP; só `scripts/test-ingest-and-ask.sh` lhe
+  chamava) — por isso foi **realinhado** para `/api/v1/documents`
+  (`git mv`, mesma lógica, mesma proteção por `INTERNAL_API_KEY`) em vez
+  de manter dois paths a fazer a mesma coisa. Script de teste atualizado
+  para o novo path.
+- `/api/dev/ask` mantido tal como está — continua a ser tooling de dev
+  documentado, não o endpoint do Awl.
+
+### Validação
+
+- `pnpm build` e `pnpm lint` limpos após a mudança (incluindo o path
+  novo `/api/v1/documents` a aparecer corretamente na lista de rotas).
+- Testado localmente com `supabase start` + `pnpm dev`:
+  `POST /api/v1/query` sem chave → `401`; payload inválido → erro `zod`
+  claro; pedido válido para um encarregado da seed → resposta gerada e
+  gravada em `conversations`/`messages` (`messageId` devolvido).
+  `POST /api/v1/documents` → documento + chunk criados corretamente no
+  path novo (registo de teste removido a seguir).
+- Sem migração nova — só código de aplicação, sem tocar em schema/RLS.
+
+---
+
 ## 2026-09-16 (3) — Centro de Conhecimento: RAG de duas fontes (School Sources + Parent Sources)
 
 Pedido do utilizador: além dos documentos da escola, deixar os

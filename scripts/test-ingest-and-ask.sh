@@ -3,7 +3,7 @@
 # Admin UI (Fase 5) ou canais reais (email/chat, Fases 4/6).
 #
 # O que faz:
-#   1. Ingere um PDF via POST /api/documents/ingest (extrai texto, faz
+#   1. Ingere um PDF via POST /api/v1/documents (extrai texto, faz
 #      chunking e embeddings)
 #   2. Etiqueta o documento como âmbito 'geral' (visível a todos)
 #   3. Faz uma pergunta via POST /api/dev/ask, simulando um encarregado
@@ -63,7 +63,7 @@ print(json.dumps({
 PY
 )
 
-INGEST_RESPONSE=$(curl -s -X POST "$BASE_URL/api/documents/ingest" \
+INGEST_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/documents" \
   -H "Content-Type: application/json" \
   -H "x-internal-api-key: $INTERNAL_API_KEY" \
   -d "$INGEST_PAYLOAD")
