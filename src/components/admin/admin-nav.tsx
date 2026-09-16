@@ -15,17 +15,20 @@ export const ADMIN_NAV_LINKS = [
   { href: "/admin/lembretes", label: "Lembretes", icon: Bell },
 ] as const;
 
-export function AdminNav() {
+/** Lista de links pura, reaproveitada pela sidebar fixa (desktop) e pelo
+ * menu em drawer (mobile) — só muda o contentor à volta. */
+export function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-subtle bg-surface-card p-4">
+    <>
       {ADMIN_NAV_LINKS.map(({ href, label, icon: Icon }) => {
         const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}
             href={href}
+            onClick={onNavigate}
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
               active ? "bg-brand-900 text-white" : "text-secondary hover:bg-surface-bg hover:text-primary"
             }`}
@@ -35,6 +38,6 @@ export function AdminNav() {
           </Link>
         );
       })}
-    </nav>
+    </>
   );
 }

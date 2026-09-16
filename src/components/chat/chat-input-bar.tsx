@@ -22,7 +22,9 @@ export function ChatInputBar({
           onChange={(event) => onChange(event.target.value)}
           placeholder="Escreve a tua pergunta..."
           aria-label="Escreve a tua pergunta"
-          className="flex-1 rounded-full bg-transparent px-3 py-2 text-sm text-primary placeholder:text-muted outline-none"
+          // text-base (16px) evita o zoom automático do iOS Safari ao focar
+          // o input; só encolhe para text-sm a partir do breakpoint sm.
+          className="flex-1 rounded-full bg-transparent px-3 py-2 text-base text-primary placeholder:text-muted outline-none sm:text-sm"
         />
         <button
           type="submit"

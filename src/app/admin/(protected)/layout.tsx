@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { AdminHeader } from "@/components/admin/admin-header";
-import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 async function signOut() {
   "use server";
@@ -31,12 +30,8 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
   const email = typeof claimsData.claims.email === "string" ? claimsData.claims.email : "Admin";
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface-bg">
-      <AdminHeader email={email} signOutAction={signOut} />
-      <div className="flex flex-1">
-        <AdminNav />
-        <main className="flex-1 p-6 sm:p-8">{children}</main>
-      </div>
-    </div>
+    <AdminShell email={email} signOutAction={signOut}>
+      {children}
+    </AdminShell>
   );
 }

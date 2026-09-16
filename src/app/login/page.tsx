@@ -104,7 +104,7 @@ function LoginForm() {
               placeholder="o-teu-email@exemplo.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="rounded-xl border border-subtle px-4 py-3 text-sm text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none"
+              className="rounded-xl border border-subtle px-4 py-3 text-base text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none sm:text-sm"
             />
             <button
               type="submit"
@@ -128,7 +128,7 @@ function LoginForm() {
               placeholder="o-teu-email@exemplo.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="rounded-xl border border-subtle px-4 py-3 text-sm text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none"
+              className="rounded-xl border border-subtle px-4 py-3 text-base text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none sm:text-sm"
             />
             <label htmlFor="password" className="sr-only">
               Password
@@ -141,7 +141,7 @@ function LoginForm() {
               placeholder="Password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="rounded-xl border border-subtle px-4 py-3 text-sm text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none"
+              className="rounded-xl border border-subtle px-4 py-3 text-base text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 focus-visible:outline-none sm:text-sm"
             />
             <button
               type="submit"

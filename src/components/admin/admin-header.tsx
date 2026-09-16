@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 
-export function AdminHeader({ email, signOutAction }: { email: string; signOutAction: () => void }) {
+export function AdminHeader({
+  email,
+  signOutAction,
+  onMenuClick,
+}: {
+  email: string;
+  signOutAction: () => void;
+  onMenuClick?: () => void;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const initials = email.slice(0, 2).toUpperCase();
 
@@ -12,7 +20,17 @@ export function AdminHeader({ email, signOutAction }: { email: string; signOutAc
     <header className="relative z-20 flex items-center justify-between border-b border-subtle bg-surface-card px-4 py-3 shadow-sm sm:px-6">
       {menuOpen && <button aria-hidden="true" tabIndex={-1} onClick={() => setMenuOpen(false)} className="fixed inset-0 z-10 cursor-default" />}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {onMenuClick && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Abrir menu"
+            className="-ml-1.5 rounded-full p-2 text-secondary transition hover:bg-surface-bg md:hidden"
+          >
+            <Menu size={20} aria-hidden="true" />
+          </button>
+        )}
         <BrandLogo size="sm" />
         <span className="hidden rounded-full bg-surface-bg px-2.5 py-1 text-xs font-medium text-secondary sm:inline">Admin</span>
       </div>

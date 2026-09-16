@@ -1,7 +1,9 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
+// text-base (16px) evita o zoom automático do iOS Safari ao focar o campo;
+// só encolhe para text-sm a partir do breakpoint sm.
 const fieldClass =
-  "rounded-xl border border-subtle bg-surface-card px-3 py-2 text-sm text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900";
+  "rounded-xl border border-subtle bg-surface-card px-3 py-2 text-base text-primary placeholder:text-muted outline-none focus:border-brand-900 focus:ring-2 focus:ring-brand-900 sm:text-sm";
 
 export function Input({ className = "", ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...rest} className={`${fieldClass} ${className}`} />;
