@@ -69,8 +69,12 @@ async function addChannelIdentity(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const guardian_id = String(formData.get("guardian_id"));
   const channel = String(formData.get("channel") ?? "");
-  const identifier = String(formData.get("identifier") ?? "").trim();
+  let identifier = String(formData.get("identifier") ?? "").trim();
   if (!channel || !identifier) return;
+  // A Meta Cloud API envia o número em formato E.164 sem "+" — normaliza
+  // aqui para o identificador guardado bater sempre certo com o "from"
+  // do webhook, independentemente de como o admin o escreveu.
+  if (channel === "whatsapp") identifier = identifier.replace(/\D/g, "");
   const { error } = await supabase.from("channel_identities").insert({ guardian_id, channel, identifier, verified: true });
   if (error) console.error("addChannelIdentity:", error.message);
   revalidatePath("/admin/encarregados");
