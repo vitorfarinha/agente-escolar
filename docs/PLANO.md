@@ -6,6 +6,11 @@
 
 **Projeto:** independente do SAISHub (stack semelhante, base de código separada).
 
+> **Estado de execução:** ver `docs/HISTORICO.md` para o registo detalhado
+> de decisões, correções e desvios face a este plano. As fases abaixo têm
+> uma etiqueta de estado (✅ concluída / ⚠️ parcial / ⏳ por fazer) mantida
+> atualizada à medida que o trabalho avança.
+
 ---
 
 ## 1. Princípios de arquitetura
@@ -259,54 +264,54 @@ create table admin_users (
 
 ## 7. Passos de execução para o Claude Code
 
-### Fase 0 — Setup do projeto
+### Fase 0 — Setup do projeto ✅
 1. Criar repositório novo no GitHub (`agente-escolar`)
 2. `pnpm create next-app` com TypeScript, App Router, Tailwind
 3. Instalar dependências: `@supabase/supabase-js`, `@supabase/ssr`, `openai`, `@anthropic-ai/sdk`, `pdf-parse`, `resend`, `zod`
 4. Configurar variáveis de ambiente (`.env.local` + Vercel): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `INTERNAL_API_KEY` (para os endpoints usados pelo Awl)
 5. Ligar repositório ao Vercel (deploy automático)
 
-### Fase 1 — Base de dados
+### Fase 1 — Base de dados ✅
 6. Criar projeto Supabase novo
 7. Escrever migrações SQL (ficheiros em `supabase/migrations/`) com o schema completo da secção 3
 8. Aplicar migrações (`supabase db push` ou via dashboard)
 9. Escrever as policies de RLS (função auxiliar `get_guardian_scopes` + policies por tabela)
 10. Popular dados de teste da turma-piloto (1 turma, ~5 alunos, respetivos encarregados, 2-3 atividades) via seed script
 
-### Fase 2 — Pipeline de ingestão
+### Fase 2 — Pipeline de ingestão ✅
 11. Função `extractText(file)` — deteta tipo (PDF/email) e extrai texto
 12. Função `chunkText(text)` — divide em chunks com overlap
 13. Função `embedChunks(chunks)` — chama OpenAI embeddings, grava em `document_chunks`
 14. Endpoint interno `POST /api/documents/ingest` que orquestra 11-13 e cria a entrada em `documents`
 
-### Fase 3 — Motor de perguntas (núcleo agnóstico de canal)
+### Fase 3 — Motor de perguntas (núcleo agnóstico de canal) ✅
 15. Função `resolveGuardian(channel, identifier)` → consulta `channel_identities`
 16. Função `getGuardianScopes(guardianId)` → devolve ciclos/anos/turmas/atividades/alunos relevantes
 17. Função `retrieveRelevantChunks(question, scopes)` → embedding da pergunta + pesquisa vetorial filtrada
 18. Função `generateAnswer(question, chunks)` → chamada ao Claude Haiku com prompt estruturado (contexto + pedido de citação da fonte)
 19. Função core `handleIncomingMessage(msg: IncomingMessage): OutgoingMessage` que junta 15-18 e grava em `conversations`/`messages`
 
-### Fase 4 — Canal de email
+### Fase 4 — Canal de email ✅
 20. Configurar domínio + Inbound Parse no Resend
 21. Endpoint `POST /api/webhooks/email-inbound` — recebe payload do Resend, monta `IncomingMessage`, chama o núcleo, envia resposta via Resend
 
-### Fase 5 — Admin UI
+### Fase 5 — Admin UI ✅
 22. Autenticação de admin (Supabase Auth, verificação contra `admin_users`)
 23. Páginas CRUD: `/admin/escolas`, `/admin/turmas`, `/admin/atividades`, `/admin/alunos`, `/admin/encarregados`
 24. Página `/admin/documentos` — upload + formulário de etiquetagem de âmbito + estado de processamento
     - Inclui edição do texto extraído (`raw_text`) com re-chunking e re-embedding — a extração automática (PDF/tabelas) nunca é 100% fiável, e não há forma de corrigir isso hoje (Fase 2/3) sem apagar e reingerir o documento inteiro.
 25. Página `/admin/lembretes` — lista simples de lembretes agendados
 
-### Fase 6 — Chat web para encarregados
+### Fase 6 — Chat web para encarregados ✅
 26. Página de login (`/login`) com magic link do Supabase Auth
 27. Página `/chat` — interface simples de pergunta/resposta ligada ao núcleo (Fase 3), usando o `auth.uid()` da sessão para resolver o encarregado
 28. Histórico de conversa visível na mesma página
 
-### Fase 7 — Stubs de preparação (sem ativar ainda)
+### Fase 7 — Stubs de preparação (sem ativar ainda) ⏳
 29. Ficheiro `channel-adapters/whatsapp.ts` com a função de tradução `IncomingMessage`/`OutgoingMessage` e um comentário `// TODO: ligar à Meta Cloud API quando pronto`
 30. Endpoints `POST /api/v1/query` e `POST /api/v1/documents` protegidos por `INTERNAL_API_KEY`, já a chamar o núcleo/pipeline existentes — prontos a ser consumidos pelo Awl
 
-### Fase 8 — Testes com a turma-piloto
+### Fase 8 — Testes com a turma-piloto ⚠️
 31. Carregar 5-10 documentos reais da turma (circulares, horário, ementa, visita de estudo)
 32. Etiquetar âmbitos no admin
 33. Testar por email com 2-3 encarregados reais

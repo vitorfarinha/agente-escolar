@@ -14,6 +14,7 @@ pnpm dev          # http://localhost:3000
 
 - [`CLAUDE.md`](./CLAUDE.md) — stack, convenções, forma de trabalhar
 - [`docs/PLANO.md`](./docs/PLANO.md) — fonte da verdade sobre o que construir (fases, schema, arquitetura)
+- [`docs/HISTORICO.md`](./docs/HISTORICO.md) — registo cronológico de decisões, correções e desvios face ao plano
 - [`docs/ENV.md`](./docs/ENV.md) — variáveis de ambiente
 
 ## Scripts úteis
