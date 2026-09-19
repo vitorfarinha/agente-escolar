@@ -15,7 +15,14 @@ export type RetrievedChunk = {
 export async function retrieveRelevantChunks(
   question: string,
   scopes: GuardianScope[],
-  matchCount = 5,
+  // Corpus ainda pequeno (piloto de uma turma) — subir de 5 para 12 reduz
+  // muito o risco de perder um chunk necessário para perguntas que exigem
+  // cruzar dois documentos sem palavras-chave em comum entre si (ex:
+  // "que dias levar polo amarelo" precisa do Horário + da regra de
+  // farda em "Info geral", mas o Horário não contém "polo"/"amarelo"
+  // para ser apanhado pela pesquisa por texto literal, só podendo entrar
+  // via similaridade vetorial — daí precisar de mais margem no top-N).
+  matchCount = 12,
 ): Promise<RetrievedChunk[]> {
   const embeddingResponse = await openai.embeddings.create({
     model: "text-embedding-3-small",
