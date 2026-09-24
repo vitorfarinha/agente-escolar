@@ -2,16 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { RetrievedChunk } from "./retrieve-relevant-chunks";
 import type { ActiveFamilyNote } from "./get-active-family-notes";
 import type { GuardianChild } from "./get-guardian-children";
+import type { ConversationTurn } from "./types";
 import { currentDateTimeLabel } from "./school-time";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export const MODEL = "claude-haiku-4-5-20251001";
-
-export type ConversationTurn = {
-  sender: "guardian" | "agent";
-  content: string;
-};
 
 const SYSTEM_PROMPT = `És o assistente de informação escolar de uma escola. Respondes a perguntas de encarregados de educação com base nos factos presentes nos excertos de documentos fornecidos como contexto.
 
@@ -88,3 +84,4 @@ export async function generateAnswer(
   const textBlock = message.content.find((block) => block.type === "text");
   return textBlock?.text ?? "Não foi possível gerar uma resposta.";
 }
+
