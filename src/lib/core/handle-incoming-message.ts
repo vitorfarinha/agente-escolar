@@ -4,9 +4,14 @@ import { getGuardianScopes } from "./get-guardian-scopes";
 import { getGuardianChildren } from "./get-guardian-children";
 import { getActiveFamilyNotes } from "./get-active-family-notes";
 import { retrieveRelevantChunks } from "./retrieve-relevant-chunks";
-import { generateAnswer } from "./generate-answer";
+import { generateAnswer, type ConversationTurn } from "./generate-answer";
 import { extractFamilyFact } from "./extract-family-fact";
 import type { IncomingMessage, OutgoingMessage } from "./types";
+
+// Quantas mensagens recentes (encarregado + agente, intercaladas) trazer
+// como histórico para o modelo — o suficiente para resolver perguntas de
+// seguimento sem deixar o contexto crescer sem limite.
+const HISTORY_LIMIT = 10;
 
 /**
  * Ponto de entrada único do núcleo agnóstico de canal. Os adaptadores
@@ -26,30 +31,11 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
   }
 
   const [scopes, children] = await Promise.all([getGuardianScopes(guardianId), getGuardianChildren(guardianId)]);
-  const [chunks, familyNotes] = await Promise.all([retrieveRelevantChunks(msg.text, scopes), getActiveFamilyNotes(guardianId, children)]);
-  const referencedDocumentIds = [...new Set(chunks.map((chunk) => chunk.document_id))];
 
-  const [answerText, extractedFact] = await Promise.all([
-    generateAnswer(msg.text, chunks, familyNotes, children),
-    extractFamilyFact(msg.text, children, familyNotes).catch((error) => {
-      console.error("extractFamilyFact:", error instanceof Error ? error.message : error);
-      return null;
-    }),
-  ]);
-
-  let familyNoteSaved = false;
-  if (extractedFact) {
-    const { error: noteError } = await supabase.from("family_notes").insert({
-      guardian_id: guardianId,
-      student_id: extractedFact.student_id,
-      content: extractedFact.content,
-      event_date: extractedFact.event_date,
-      source: "auto",
-    });
-    if (noteError) console.error("family_notes insert:", noteError.message);
-    else familyNoteSaved = true;
-  }
-
+  // Encontra ou cria a conversa antes de gerar a resposta, para podermos
+  // carregar o histórico recente e dar continuidade a perguntas de
+  // seguimento (ex: "qual é o horário de atendimento dela?" depois de já
+  // se ter identificado uma professora na mensagem anterior).
   const { data: existingConversation } = await supabase
     .from("conversations")
     .select("id")
@@ -70,6 +56,41 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
 
     if (error) throw new Error(`Falha ao criar conversa: ${error.message}`);
     conversationId = newConversation.id;
+  }
+
+  const { data: recentMessages, error: historyError } = await supabase
+    .from("messages")
+    .select("sender, content")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(HISTORY_LIMIT);
+
+  if (historyError) throw new Error(`Falha ao obter histórico da conversa: ${historyError.message}`);
+
+  const history: ConversationTurn[] = (recentMessages ?? []).reverse();
+
+  const [chunks, familyNotes] = await Promise.all([retrieveRelevantChunks(msg.text, scopes), getActiveFamilyNotes(guardianId, children)]);
+  const referencedDocumentIds = [...new Set(chunks.map((chunk) => chunk.document_id))];
+
+  const [answerText, extractedFact] = await Promise.all([
+    generateAnswer(msg.text, chunks, familyNotes, children, history),
+    extractFamilyFact(msg.text, children, familyNotes).catch((error) => {
+      console.error("extractFamilyFact:", error instanceof Error ? error.message : error);
+      return null;
+    }),
+  ]);
+
+  let familyNoteSaved = false;
+  if (extractedFact) {
+    const { error: noteError } = await supabase.from("family_notes").insert({
+      guardian_id: guardianId,
+      student_id: extractedFact.student_id,
+      content: extractedFact.content,
+      event_date: extractedFact.event_date,
+      source: "auto",
+    });
+    if (noteError) console.error("family_notes insert:", noteError.message);
+    else familyNoteSaved = true;
   }
 
   const { data: insertedMessages, error: messagesError } = await supabase
