@@ -4,9 +4,9 @@ import { getGuardianScopes } from "./get-guardian-scopes";
 import { getGuardianChildren } from "./get-guardian-children";
 import { getActiveFamilyNotes } from "./get-active-family-notes";
 import { retrieveRelevantChunks } from "./retrieve-relevant-chunks";
-import { generateAnswer, type ConversationTurn } from "./generate-answer";
+import { generateAnswer } from "./generate-answer";
 import { extractFamilyFact } from "./extract-family-fact";
-import type { IncomingMessage, OutgoingMessage } from "./types";
+import type { IncomingMessage, OutgoingMessage, ConversationTurn } from "./types";
 
 // Quantas mensagens recentes (encarregado + agente, intercaladas) trazer
 // como histórico para o modelo — o suficiente para resolver perguntas de
@@ -69,7 +69,7 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
 
   const history: ConversationTurn[] = (recentMessages ?? []).reverse();
 
-  const [chunks, familyNotes] = await Promise.all([retrieveRelevantChunks(msg.text, scopes), getActiveFamilyNotes(guardianId, children)]);
+  const [chunks, familyNotes] = await Promise.all([retrieveRelevantChunks(msg.text, scopes, undefined, history), getActiveFamilyNotes(guardianId, children)]);
   const referencedDocumentIds = [...new Set(chunks.map((chunk) => chunk.document_id))];
 
   const [answerText, extractedFact] = await Promise.all([
@@ -112,3 +112,4 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
 
   return { text: answerText, referencedDocumentIds, messageId: agentMessageId, familyNoteSaved };
 }
+
