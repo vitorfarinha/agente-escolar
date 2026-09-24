@@ -20,3 +20,11 @@ export type OutgoingMessage = {
    * discreto; outros canais podem ignorar o campo. */
   familyNoteSaved?: boolean;
 };
+
+/** Um turno da conversa (encarregado ou agente), usado tanto para dar
+ * histórico ao modelo de resposta como para enriquecer a pesquisa de
+ * documentos em perguntas de seguimento (ex: "e a sua professora?"). */
+export type ConversationTurn = {
+  sender: "guardian" | "agent";
+  content: string;
+};
