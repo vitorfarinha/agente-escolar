@@ -4,6 +4,8 @@ import type { ActiveFamilyNote } from "./get-active-family-notes";
 import type { GuardianChild } from "./get-guardian-children";
 import type { ConversationTurn } from "./types";
 import { currentDateTimeLabel } from "./school-time";
+import { verifyAnswerRelevance } from "./verify-answer-relevance";
+import { logTokenUsage } from "./log-token-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -16,6 +18,7 @@ Regras:
 - Sê relativamente curto: a maioria das perguntas fica bem respondida em poucas frases, sem grandes explicações. Só te alongues se o encarregado pedir mais detalhe explicitamente, ou a pergunta genuinamente exigir mais (ex: comparações, listas de vários itens).
 - Formato: frase corrida, sem títulos, sem bullets, sem negrito, a não ser que a pergunta peça explicitamente uma lista. Evita respostas estruturadas em secções com título tipo "De acordo com o documento:" seguidas de bullets — isso é para relatórios, não para uma conversa.
 - Antes de citar a fonte no fim da resposta, deixa sempre uma linha em branco a separar da resposta.
+- Cada resposta tem de ser sobre a mensagem MAIS RECENTE do encarregado (a que aparece no fim, depois de "Mensagem do encarregado:") — nunca repitas nem continues literalmente uma resposta anterior do histórico, mesmo que essa resposta anterior pareça relacionada ou o tema pareça semelhante. Se a pergunta atual for sobre um assunto diferente do que discutiam antes, responde ao assunto atual, do zero.
 - Tens acesso ao histórico recente desta conversa (mensagens anteriores tuas e do encarregado). Usa-o para resolver referências de seguimento — pronomes ("ela", "o seu"), retomas implícitas ("e o horário?" depois de teres identificado uma professora) — tal como um humano continuaria a conversa. Só peças esclarecimento se o histórico genuinamente não permitir identificar a quem/o quê a pergunta se refere.
 - No início do contexto vem a lista "Educandos deste encarregado", com o nome, turma, ano e ciclo de cada um. Usa-a sempre que a pergunta mencionar um educando pelo nome (ex: "professora do <nome>", "horário do <nome>") para saberes a que turma/documentos essa pergunta se refere — mesmo que o nome do educando não apareça literalmente nos excertos de documentos (os documentos normalmente só mencionam a turma, não o nome de cada aluno). Usa sempre o ciclo exatamente como consta dessa lista — nunca o deduzas a partir do número no nome da turma (ex: uma turma "3ºB" pode perfeitamente pertencer ao 1ºCiclo; o número identifica o ano dentro do ciclo, não o ciclo em si).
 - A mensagem do utilizador começa com a data/hora atuais (dia da semana, data, hora) em Portugal. Usa-as para resolver qualquer referência relativa de tempo na pergunta ("hoje", "amanhã", "esta semana", "sexta-feira que vem") — calcula o dia da semana correspondente e cruza-o com horários/calendários presentes no contexto (ex: "amanhã" a partir de uma quarta-feira é quinta-feira — usa o horário de quinta-feira). Exceção: entre as 00:00 e as 06:00, "amanhã" dito no sentido de "a manhã seguinte" refere-se ao próprio dia atual (a manhã que se aproxima), não ao dia seguinte no calendário — a mensagem já vem anotada com esta exceção quando aplicável.
@@ -42,12 +45,37 @@ function buildChildrenContext(children: GuardianChild[]): string {
   return `Educandos deste encarregado: ${list}.`;
 }
 
+async function callModel(question: string, context: string, historyMessages: Array<{ role: "user" | "assistant"; content: string }>, extraNote?: string) {
+  const userContent = [
+    `Data e hora atuais: ${currentDateTimeLabel()}`,
+    extraNote,
+    `Contexto:\n${context}`,
+    `Mensagem do encarregado: ${question}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 500,
+    system: SYSTEM_PROMPT,
+    messages: [...historyMessages, { role: "user", content: userContent }],
+  });
+
+  const textBlock = message.content.find((block) => block.type === "text");
+  return {
+    text: textBlock?.text ?? "Não foi possível gerar uma resposta.",
+    usage: { inputTokens: message.usage.input_tokens, outputTokens: message.usage.output_tokens },
+  };
+}
+
 export async function generateAnswer(
   question: string,
   chunks: RetrievedChunk[],
   familyNotes: ActiveFamilyNote[] = [],
   children: GuardianChild[] = [],
   history: ConversationTurn[] = [],
+  guardianId?: string,
 ): Promise<string> {
   if (chunks.length === 0 && familyNotes.length === 0) {
     return "Não encontrei informação relevante nos documentos disponíveis para responder a esta pergunta. Pode reformular a pergunta ou contactar diretamente a escola.";
@@ -68,20 +96,47 @@ export async function generateAnswer(
     content: turn.content,
   }));
 
-  const message = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 500,
-    system: SYSTEM_PROMPT,
-    messages: [
-      ...historyMessages,
-      {
-        role: "user",
-        content: `Data e hora atuais: ${currentDateTimeLabel()}\n\nContexto:\n${context}\n\nMensagem do encarregado: ${question}`,
-      },
-    ],
-  });
+  const draft = await callModel(question, context, historyMessages);
+  if (guardianId) {
+    await logTokenUsage({ guardianId, callType: "answer", model: MODEL, inputTokens: draft.usage.inputTokens, outputTokens: draft.usage.outputTokens });
+  }
 
-  const textBlock = message.content.find((block) => block.type === "text");
-  return textBlock?.text ?? "Não foi possível gerar uma resposta.";
+  // Segundo passo, independente: confirma que a resposta gerada é
+  // mesmo sobre a pergunta atual, e não uma repetição/continuação de
+  // uma troca anterior do histórico (falha já observada em produção —
+  // ver commit desta alteração). Uma instrução no mesmo prompt não
+  // chega, porque é precisamente ali que a geração já falhou uma vez;
+  // uma verificação à parte apanha isso mesmo quando a primeira
+  // chamada "encrava" num padrão do histórico.
+  const verification = await verifyAnswerRelevance(question, draft.text);
+  if (guardianId) {
+    await logTokenUsage({
+      guardianId,
+      callType: "verification",
+      model: MODEL,
+      inputTokens: verification.usage.inputTokens,
+      outputTokens: verification.usage.outputTokens,
+    });
+  }
+
+  if (verification.relevant) {
+    return draft.text;
+  }
+
+  // Regenera sem histórico — a fonte mais provável da confusão — e
+  // sem voltar a verificar, para não entrar num ciclo nem disparar
+  // custo/latência sem limite. Aceita-se este segundo resultado tal
+  // como vier.
+  console.error("verifyAnswerRelevance: resposta nao relevante, a regenerar sem historico", { question, draftAnswer: draft.text });
+  const retry = await callModel(
+    question,
+    context,
+    [],
+    "Nota interna: uma tentativa anterior de responder a esta pergunta não respondeu ao que foi perguntado. Ignora qualquer conversa anterior e responde apenas com base no contexto e na pergunta abaixo.",
+  );
+  if (guardianId) {
+    await logTokenUsage({ guardianId, callType: "regeneration", model: MODEL, inputTokens: retry.usage.inputTokens, outputTokens: retry.usage.outputTokens });
+  }
+
+  return retry.text;
 }
-
