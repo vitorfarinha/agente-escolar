@@ -73,7 +73,7 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
   const referencedDocumentIds = [...new Set(chunks.map((chunk) => chunk.document_id))];
 
   const [answerText, extractedFact] = await Promise.all([
-    generateAnswer(msg.text, chunks, familyNotes, children, history),
+    generateAnswer(msg.text, chunks, familyNotes, children, history, guardianId),
     extractFamilyFact(msg.text, children, familyNotes).catch((error) => {
       console.error("extractFamilyFact:", error instanceof Error ? error.message : error);
       return null;
@@ -112,4 +112,5 @@ export async function handleIncomingMessage(msg: IncomingMessage): Promise<Outgo
 
   return { text: answerText, referencedDocumentIds, messageId: agentMessageId, familyNoteSaved };
 }
+
 
