@@ -11,7 +11,13 @@ export default async function ChatPage() {
     redirect("/login");
   }
 
-  const { data: guardian } = await supabase.from("guardians").select("id, name, email").maybeSingle();
+  // Filtrar explicitamente por auth_user_id, em vez de confiar só na RLS
+  // com .maybeSingle() sem filtro: contas que são também admin (ex:
+  // admin_users) veem TODAS as linhas de guardians via a policy "admins
+  // manage guardians", o que faz .maybeSingle() falhar com mais de uma
+  // linha e era tratado (incorretamente) como "encarregado não encontrado".
+  const userId = claimsData.claims.sub;
+  const { data: guardian } = await supabase.from("guardians").select("id, name, email").eq("auth_user_id", userId).maybeSingle();
 
   if (!guardian) {
     await supabase.auth.signOut();
