@@ -11,7 +11,13 @@ type Child = { id: string; first_name: string; last_name: string };
 async function createNote(formData: FormData) {
   "use server";
   const supabase = await createServerSupabaseClient();
-  const { data: guardian } = await supabase.from("guardians").select("id").maybeSingle();
+  // Filtrar explicitamente por auth_user_id, em vez de confiar só na RLS
+  // com .maybeSingle() sem filtro: contas que são também admin veem TODAS
+  // as linhas de guardians via a policy "admins manage guardians", o que
+  // faz .maybeSingle() falhar com mais de uma linha.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  const { data: guardian } = userId ? await supabase.from("guardians").select("id").eq("auth_user_id", userId).maybeSingle() : { data: null };
   if (!guardian) return;
 
   const student_id = String(formData.get("student_id") ?? "");
@@ -61,7 +67,10 @@ export default async function ConhecimentoPage() {
     redirect("/login");
   }
 
-  const { data: guardian } = await supabase.from("guardians").select("id, name, email").maybeSingle();
+  // Ver nota equivalente em createNote() acima e em /chat/page.tsx sobre
+  // porque este filtro explícito é necessário (contas que são também admin).
+  const userId = claimsData.claims.sub;
+  const { data: guardian } = await supabase.from("guardians").select("id, name, email").eq("auth_user_id", userId).maybeSingle();
 
   if (!guardian) {
     await supabase.auth.signOut();
