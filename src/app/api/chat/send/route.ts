@@ -11,7 +11,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { data: guardian } = await supabase.from("guardians").select("id").maybeSingle();
+  // Filtrar explicitamente por auth_user_id, em vez de confiar só na RLS
+  // com .maybeSingle() sem filtro: contas que são também admin veem TODAS
+  // as linhas de guardians via a policy "admins manage guardians", o que
+  // faz .maybeSingle() falhar com mais de uma linha (ver também /chat/page.tsx).
+  const userId = claimsData.claims.sub;
+  const { data: guardian } = await supabase.from("guardians").select("id").eq("auth_user_id", userId).maybeSingle();
   if (!guardian) {
     return NextResponse.json({ error: "not registered" }, { status: 403 });
   }
